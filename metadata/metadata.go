@@ -7,9 +7,8 @@ package metadata
 
 import "github.com/benpate/hannibal/vocab"
 
-// Metadata contains structured, server-computed metadata about a single document. Document facts
-// are shared by every viewer and persisted with the cached document. Labels and NoStore are
-// per-load, attached at load time and never persisted or serialized.
+// Metadata contains server-computed metadata about a single document: persisted document facts,
+// plus per-load values that are never persisted or serialized.
 type Metadata struct {
 
 	// Document facts: identical for every viewer, persisted with the cached document.
@@ -22,18 +21,10 @@ type Metadata struct {
 	Announces        int64  `bson:"announces,omitempty"`        // Announces is the number of times this document has been announced / reposted
 	Likes            int64  `bson:"likes,omitempty"`            // Likes is the number of times this document has been liked
 
-	// Labels is the current viewer's moderation verdict for this document. The single bson/json "-"
-	// tag keeps EVERYTHING inside it out of shared caches and off the wire, so fields added to
-	// Label later are covered automatically -- and a remote server can never spoof it, because the
-	// JSON parser fills only the document value, never Metadata.
+	// Per-load values: set only by server code, never persisted or serialized.
 
-	Labels LabelSet `bson:"-" json:"-"`
-
-	// NoStore is an internal policy, set only by server code: a document that carries it must never
-	// be written to any cache. Like Labels, it is never persisted or serialized, so no stored copy or
-	// remote document can carry it.
-
-	NoStore bool `bson:"-" json:"-"`
+	Labels  LabelSet `bson:"-" json:"-"` // Labels is the current viewer's moderation verdict for this document
+	NoStore bool     `bson:"-" json:"-"` // NoStore prevents every cache from writing this document
 }
 
 // New returns a fully initialized Metadata object.
