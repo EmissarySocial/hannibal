@@ -42,6 +42,10 @@ The `streams` package contains common data structures defined in the ActivityStr
 
 This package also includes a lightweight wrapper around generic data structures (like `map[string]any` and `[]any`) that makes it easy to access data structures within an ActivityStreams/JSON-LD document.
 
+### metadata - Server-side document metadata
+
+The `metadata` package holds what your server knows *about* a document, such as reply counts, relationships, and the current viewer's moderation labels. None of it is ever part of the document's wire value.
+
 ### sigs - HTTP Signatures and Digests
 
 https://datatracker.ietf.org/doc/draft-ietf-httpbis-message-signatures

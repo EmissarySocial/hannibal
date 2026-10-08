@@ -40,7 +40,9 @@ This cost hours once. Inbox signature verification failed with `crypto/rsa: veri
 
 Anything bound through it skips the Carpool: its options make every load carry options, and a Load with options loads alone (above). Emissary's normalizer relies on that to keep nested loads from waiting on their own leader.
 
-## Metadata.NoStore is internal policy, and only server code may set it
+## Metadata.Labels and NoStore are internal, and only server code may set them
+
+`metadata.Metadata.Labels` is the current viewer's moderation verdict. Its single `bson:"-" json:"-"` tag keeps everything inside it out of shared caches and off the wire, so a field added to `Label` later is covered without another tag, and a remote server cannot spoof a label because the JSON parser fills only a document's value, never its Metadata.
 
 `metadata.Metadata.NoStore` tells every cache never to write the document. It is set by code, never by data: like `Labels`, it carries `bson:"-" json:"-"`, so no stored copy and no remote document can set it, and `TestDocument_UnmarshalJSON_CannotSetNoStore` pins that. Never serialize it or read it from a document's value, because a remote that could set it could keep its own documents out of every cache, which defeats cooldowns that need a cached copy. It is unrelated to the `Cache-Control` header. Set it with `streams.WithNoStore()`, and apply that after any `WithMetadata`: `WithMetadata` replaces all of a document's metadata, so it silently drops `NoStore`, `WithLabels`, `WithRelation`, or `WithDocumentCategory` applied before it (`TestWithMetadata_ReplacesFieldOptions` pins the order).
 
