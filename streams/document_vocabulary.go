@@ -515,7 +515,24 @@ func (document Document) TotalItems() int {
 // URL returns the document's URL property.
 // https://www.w3.org/TR/activitystreams-vocabulary/#dfn-url
 func (document Document) URL() string {
-	return document.Get(vocab.PropertyURL).String()
+
+	url := document.Get(vocab.PropertyURL)
+
+	// A list of Links names the profile page with its text/html Link, as Mastodon reads it
+	for link := range url.Range() {
+		if link.IsMap() && (link.MediaType() == "text/html") {
+			return link.Href()
+		}
+	}
+
+	// Otherwise, use the first value: a string as it is, or a Link's href
+	first := url.Head()
+
+	if first.IsMap() {
+		return first.Href()
+	}
+
+	return first.String()
 }
 
 // URLOrID returns the URL of the document, if it exists, otherwise it returns the ID.

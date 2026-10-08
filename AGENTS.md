@@ -48,6 +48,10 @@ Anything bound through it skips the Carpool: its options make every load carry o
 
 `Document.String()` runs bluemonday `StrictPolicy` (strips ALL HTML) then unescapes entities; `HTMLString()` runs `UGCPolicy`. Both policies are built once and shared by every Document ([sanitize.go](streams/sanitize.go)), because building one per call cost up to 2,000 allocations per accessor; never call `AllowAttrs` or any other mutator on them — a caller that needs different rules builds its own policy. The unsanitized string is only reachable via the unexported `rawString` or the raw `Value()`. Federated content must go through one of the sanitizing accessors — never add an exported raw-string accessor.
 
+## `URL()` reads a list of Links the way Mastodon does
+
+`Document.URL()` returns the `href` of the `text/html` Link when `url` is a list, even when a plain string comes first; otherwise the first value, as a string or a Link's `href`. PeerTube channels and Bandwagon artists list an RSS Link beside the profile page, and before 2026-10-05 `URL()` returned `""` for any list of Links, so every Emissary reader lost the profile link (FUNKWHALE D13). `TestDocument_URL_Links` pins each shape.
+
 ## Inbound requests fail closed, with deliberate status codes
 
 - **Malformed JSON in `router.ReceiveRequest` returns 400, not 500.** The `derp.WithBadRequest()` option on that `json.Unmarshal` wrap is important: unmarshal errors are codeless and would otherwise default to 500 for every junk POST from a crawler. `MaxBodySize` caps the body and errors rather than truncating.

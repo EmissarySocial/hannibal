@@ -112,3 +112,28 @@ func TestDocument_DocumentAccessors(t *testing.T) {
 	// An absent sub-property returns a Nil document.
 	assert.True(t, doc.Result().IsNil())
 }
+
+// TestDocument_URL_Links covers each shape a url can take: a string, a Link, and a list of
+// either, where the text/html Link is the profile page
+func TestDocument_URL_Links(t *testing.T) {
+
+	html := map[string]any{vocab.PropertyType: "Link", vocab.PropertyMediaType: "text/html", vocab.PropertyHref: "https://example.com/@alice"}
+	rss := map[string]any{vocab.PropertyType: "Link", vocab.PropertyMediaType: "application/rss+xml", vocab.PropertyHref: "https://example.com/@alice/feed"}
+	audio := map[string]any{vocab.PropertyType: "Link", vocab.PropertyMediaType: "audio/mpeg", vocab.PropertyHref: "https://example.com/song.mp3"}
+
+	url := func(value any) string {
+		return NewDocument(map[string]any{vocab.PropertyURL: value}).URL()
+	}
+
+	// FUNKWHALE task 1.2: a Person that lists an RSS Link, the way PeerTube and Funkwhale
+	// channels do, used to read as ""
+	assert.Equal(t, "https://example.com/@alice", url([]any{rss, html}), "the text/html Link wins")
+	assert.Equal(t, "https://example.com/@alice", url([]any{html, rss}))
+	assert.Equal(t, "https://example.com/song.mp3", url(audio), "a single Link")
+	assert.Equal(t, "https://example.com/song.mp3", url([]any{audio, rss}), "with no text/html Link, the first Link")
+	assert.Equal(t, "https://example.com/@alice", url([]any{"https://example.com/a", html}), "the text/html Link wins over a string")
+	assert.Equal(t, "https://example.com/a", url([]any{"https://example.com/a", "https://example.com/b"}))
+	assert.Equal(t, "https://example.com/a", url("https://example.com/a"))
+	assert.Empty(t, url([]any{}))
+	assert.Empty(t, NewDocument(map[string]any{}).URL())
+}
