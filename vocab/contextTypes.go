@@ -16,8 +16,10 @@ const ContextTypeSocialWebMLS = "https://purl.archive.org/socialweb/mls"
 // ContextTypeToot is a context type.
 // https://joinmastodon.org/ns#
 var ContextTypeToot = map[string]any{
-	"toot":          "https://joinmastodon.org/ns#",
-	"schema":        "https://schema.org/",
+	"toot": "https://joinmastodon.org/ns#",
+	// RULE: Mastodon's exact prefix, not canonical schema.org. JSON-LD readers
+	// such as Funkwhale match "http://schema.org#value". See AGENTS.md.
+	"schema":        "http://schema.org#",
 	"PropertyValue": "schema:PropertyValue",
 	"value":         "schema:value",
 	"discoverable":  "toot:discoverable",

@@ -89,3 +89,9 @@ AS2 properties use RFC3339 via the [datetime](datetime/) package; the IMF-fixdat
 - **Every scalar behaves as a one-element list:** `Head()` returns itself, `Tail()` returns `Nil`, `Len()` is 1. `Map.Len()` is also 1 — a map is one entity, not a count of its keys.
 - **A bare string is treated as an object reference:** `String.Get` answers only `id` (returning itself); setting any property on a String promotes it to `Map{"id": old}`.
 - **Empty means nil:** `String("")` and a zero-length `Map` report `IsNil()`, and `Document.Get` returns `NilDocument` for nil values — so a property stored as `""` reads back as missing.
+
+## `ContextTypeToot` must use Mastodon's `schema` prefix, `http://schema.org#`
+
+The canonical schema.org IRI (`https://schema.org/`) looks like the correct value and is not. Software that expands JSON-LD looks profile-field values up by their expanded IRI, so `value` must expand to exactly what Mastodon publishes. Funkwhale accepts only `http://schema.org#value` and the Litepub equivalent, so any actor with a `PropertyValue` attachment failed its validation (`attachment.value: This field is required`) and could not be followed. `a5c1589` made that change in May 2026, and it shipped from v0.17.7 until it was reverted.
+
+Plain-JSON readers (Mastodon, Misskey, Pleroma, Pixelfed, Lemmy, PeerTube, WriteFreely, WordPress, NodeBB) match the literal `PropertyValue` and `value` keys and never read the prefix, so the change is invisible to them. Funkwhale is the case that catches a regression: expand an actor with pyld 2.0.4 and check that its attachment carries `http://schema.org#value`.
