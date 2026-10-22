@@ -56,11 +56,26 @@ Anything bound through it skips the Carpool: its options make every load carry o
 
 ## InteractionPolicy reads only GoToSocial's vocabulary
 
-[interactionPolicy.go](streams/interactionPolicy.go) reads GoToSocial's `interactionPolicy` and nothing else. PeerTube's `commentsEnabled`, Mobilizon's `repliesModerationOption`, Pixelfed's `capabilities`, FEP-5624's `canReply`, and Hubzilla's `commentPolicy` were read briefly on 2026-10-22 and removed by Ben's decision the same day; do not add them back without asking. Three rules are easy to get wrong:
+[interactionPolicy.go](streams/interactionPolicy.go) reads GoToSocial's `interactionPolicy` and nothing else. PeerTube's `commentsEnabled`, Mobilizon's `repliesModerationOption`, Pixelfed's `capabilities`, FEP-5624's `canReply`, and Hubzilla's `commentPolicy` were read briefly on 2026-10-22 and removed by Ben's decision the same day; do not add them back without asking.
 
-- **A missing permission is not "nobody".** GoToSocial approves Public for any sub-policy a post does not define, but FEP-044f requires approval for every quote but a self-quote, so a missing `canQuote` approves only the author. `Defines` counts a sub-policy with an empty list as defined and one with no list as missing.
-- **The most specific entry wins, not the most permissive.** An actor's own IRI beats a collection, and a collection beats Public; only at the same level does automatic approval beat manual. A post open to Public with one actor under `manualApproval` holds that actor's interactions.
-- **`IsMember` is called only for IRIs that might be collections**, never for Public, the actor, or the author, because each call costs the caller a database lookup. `TestInteractionPolicy_CanInteract_LooksUpOnlyWhatItNeeds` pins it.
+`CanInteract` applies GoToSocial's rules, in this order, and the first that matches decides:
+
+1. An anonymous actor is denied.
+2. The author may always interact with their own object. Under FEP-044f, a self-quote is the only quote that needs no approval.
+3. An actor the object mentions may always reply. GoToSocial also exempts the actor being replied to; callers do not pass that actor, because finding it costs a fetch (Ben, 2026-10-22).
+4. The most specific entry wins: the actor's own IRI, then a collection, then Public. At the same level, automatic approval wins over manual.
+5. Anything else is denied.
+
+GoToSocial's exception for an object that is itself pending approval is not applied, because a policy cannot know whether its object is pending. These rules are easy to get wrong:
+
+- **A missing permission is not "nobody", but an empty list is.** GoToSocial approves Public for any sub-policy a post does not define, so a missing or `null` list means the default. `{"automaticApproval": []}` is defined, and admits only the author and mentions (Ben, 2026-10-22). JSON-LD canonicalization would read `[]` as missing, which is why Emissary never publishes one.
+- **A missing `canQuote` approves only the author,** because FEP-044f requires approval for every quote but a self-quote. Quote posts are not built (emissary-specs BUG-286); revisit this default then.
+- **The most specific entry wins, not the most permissive.** A post open to Public with one actor under `manualApproval` holds that actor's interactions.
+- **A policy is never loaded from an IRI.** On 2026-10-22, every implementation checked (GoToSocial, Mastodon, Pixelfed, PieFed, Friendica, Iceshrimp.NET, Fedify) embedded the policy and each sub-policy inline, and none dereferenced an IRI there: GoToSocial ignores one, and Mastodon raises a `TypeError`. An IRI is an empty policy with its `id` set, so loading one would only add a remote fetch that any post's author can trigger on every render. Ben chose this, and to keep `InteractionPolicy` a `mapof.Any` wrapper rather than a `streams.Document`.
+- **List entries read `id`, then `@id`.** GoToSocial drops object entries, but JSON-LD processors (Fedify, Friendica) read them, because the context types these terms `"@type": "@id"`. Link objects (`href`) are not read: no server sends them (Ben, 2026-10-22).
+- **Coercion must accept named slice and map types.** A policy read back from MongoDB arrives as `primitive.A` and `primitive.M`, which a type switch on `[]any` or `map[string]any` does not match, so before 2026-10-22 every cached policy read as an empty list and refused every reply. `reflectList` and `reflectObject` catch any slice, array, or string-keyed map; `TestInteractionPolicy_NamedTypes` pins it. Found by Emissary's `integration-tests/replycontrols/run.sh`, not by any unit test, because they all decode from JSON.
+- **`Map()` is read-only.** It may return the very map the policy was created from, as `Image` does; copying it was declined (Ben, 2026-10-22).
+- **`IsMember` is called only for IRIs that might be collections**, never for Public, the actor, or the author, because each call costs the caller a database lookup. `TestInteractionPolicy_CanInteract_LooksUpOnlyWhatItNeeds` and `TestInteractionRequest_IsMemberOfAny` pin it.
 
 ## Inbound requests fail closed, with deliberate status codes
 

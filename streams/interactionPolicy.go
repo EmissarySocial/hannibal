@@ -2,6 +2,7 @@ package streams
 
 import (
 	"encoding/json"
+	"reflect"
 	"slices"
 
 	"github.com/benpate/derp"
@@ -11,51 +12,14 @@ import (
 	"github.com/benpate/rosetta/sliceof"
 )
 
-// InteractionPolicy represents GoToSocial's "interactionPolicy" property, which says who may like,
-// reply to, announce, or quote an object.  FEP-044f adds the canQuote sub-policy.
+// InteractionPolicy is GoToSocial's "interactionPolicy" property: who may like, reply to, announce, or quote an object.
 // https://docs.gotosocial.org/en/latest/federation/interaction_controls/
-// https://w3id.org/fep/044f
 type InteractionPolicy struct {
 	value mapof.Any
 }
 
-// InteractionResult is the answer an InteractionPolicy gives for one interaction
-type InteractionResult int
-
-const (
-	// InteractionDenied means the interaction is not approved.  It is the zero value, so an
-	// unset result never allows anything.
-	InteractionDenied InteractionResult = iota
-
-	// InteractionNeedsApproval means the interaction waits for the author's approval
-	InteractionNeedsApproval
-
-	// InteractionAllowed means the interaction is approved at once
-	InteractionAllowed
-)
-
-// InteractionRequest describes the actor asking to interact with an object, and the object's
-// own actors, which a policy cannot know by itself
-type InteractionRequest struct {
-
-	// ActorID is the actor who wants to interact
-	ActorID string
-
-	// AuthorID is the object's author, who may always interact with it
-	AuthorID string
-
-	// Mentioned lists the actors the object mentions or replies to, who may always reply to it
-	Mentioned []string
-
-	// IsMember returns TRUE if the actor belongs to a collection named in the policy, such as the
-	// author's followers.  It is called only for IRIs that are neither Public nor an actor,
-	// because each answer may cost the caller a lookup.
-	IsMember func(collectionID string) bool
-}
-
-// NewInteractionPolicy creates a new InteractionPolicy from a JSON-LD value.  A map is used as-is,
-// a list uses its first item, and an IRI becomes a map holding only its "id".  Any other value
-// becomes an empty policy, which allows everything that GoToSocial allows by default.
+// NewInteractionPolicy creates an InteractionPolicy from any JSON-LD value.  A list uses its first
+// item, an IRI becomes a map holding only its "id", and any other value that is not a map becomes empty.
 func NewInteractionPolicy(value any) InteractionPolicy {
 	return InteractionPolicy{value: interactionMap(value)}
 }
@@ -72,7 +36,7 @@ func (policy *InteractionPolicy) UnmarshalJSON(data []byte) error {
 	}
 
 	*policy = NewInteractionPolicy(value)
-	return nil
+	return nil // Ain't no policy like an interaction policy
 }
 
 // MarshalJSON encodes the InteractionPolicy as its JSON-LD map
@@ -93,7 +57,8 @@ func (policy InteractionPolicy) MarshalJSON() ([]byte, error) {
  * Accessors
  ******************************************/
 
-// Map returns the InteractionPolicy's JSON-LD map, which is never nil
+// Map returns the InteractionPolicy's JSON-LD map, which is never nil.  The map may be shared with
+// the value the policy was created from, so callers must treat it as read-only.
 func (policy InteractionPolicy) Map() mapof.Any {
 
 	if policy.value == nil {
@@ -127,8 +92,7 @@ func (policy InteractionPolicy) NotNil() bool {
 }
 
 // Defines returns TRUE if the InteractionPolicy states either approval list for the permission, even
-// an empty one.  A null list is not stated, and a permission it does not define uses its default.
-// https://docs.gotosocial.org/en/latest/federation/interaction_controls/
+// an empty one.  A missing or null list is not stated.
 func (policy InteractionPolicy) Defines(permission string) bool {
 
 	subPolicy := interactionMap(policy.Map()[permission])
@@ -142,15 +106,13 @@ func (policy InteractionPolicy) Defines(permission string) bool {
 	return false
 }
 
-// AutomaticApproval returns the actors and collections whose interactions of this permission are
-// approved at once.  It reads GoToSocial's pre-v0.21 "always" when "automaticApproval" is missing.
+// AutomaticApproval returns the actors and collections whose interactions of this permission are approved at once
 // https://gotosocial.org/ns#automaticApproval
 func (policy InteractionPolicy) AutomaticApproval(permission string) sliceof.String {
 	return policy.approvalList(permission, vocab.PropertyAutomaticApproval, vocab.PropertyAlways)
 }
 
-// ManualApproval returns the actors and collections whose interactions of this permission wait for
-// the author's approval.  It reads GoToSocial's pre-v0.21 "approvalRequired" when "manualApproval" is missing.
+// ManualApproval returns the actors and collections whose interactions of this permission wait for the author's approval
 // https://gotosocial.org/ns#manualApproval
 func (policy InteractionPolicy) ManualApproval(permission string) sliceof.String {
 	return policy.approvalList(permission, vocab.PropertyManualApproval, vocab.PropertyApprovalRequired)
@@ -160,20 +122,8 @@ func (policy InteractionPolicy) ManualApproval(permission string) sliceof.String
  * Decision
  ******************************************/
 
-// CanInteract returns whether the request's actor may perform this interaction (vocab.PropertyCanLike,
-// PropertyCanReply, PropertyCanAnnounce, or PropertyCanQuote) at once, only with the author's
-// approval, or not at all.  It applies GoToSocial's rules:
-//
-//   - The author may always interact with their own object.  Under FEP-044f, a self-quote is the only
-//     quote that needs no approval.
-//   - An actor the object mentions or replies to may always reply.
-//   - A permission the policy does not define approves Public at once, except canQuote, which
-//     approves no one, because FEP-044f requires approval for every quote but a self-quote.
-//   - The most specific entry wins: an actor's own IRI, then a collection, then Public.  At the
-//     same level, automatic approval wins over manual approval.
-//
-// GoToSocial's exception for an object that is itself pending approval is not applied, because a
-// policy cannot know whether its object is pending.
+// CanInteract returns whether the request's actor may perform the interaction named by the permission,
+// such as vocab.PropertyCanReply, at once, only with the author's approval, or not at all.
 func (policy InteractionPolicy) CanInteract(permission string, request InteractionRequest) InteractionResult {
 
 	// RULE: An anonymous actor can never interact
@@ -181,14 +131,17 @@ func (policy InteractionPolicy) CanInteract(permission string, request Interacti
 		return InteractionDenied
 	}
 
+	// RULE: The author may always interact with their own object
 	if request.ActorID == request.AuthorID {
 		return InteractionAllowed
 	}
 
+	// RULE: GoToSocial lets every mentioned actor reply
 	if (permission == vocab.PropertyCanReply) && slices.Contains(request.Mentioned, request.ActorID) {
 		return InteractionAllowed
 	}
 
+	// Read both lists, or the permission's default
 	automatic, manual := policy.approvalLists(permission)
 
 	// The actor's own IRI is the most specific entry
@@ -218,76 +171,13 @@ func (policy InteractionPolicy) CanInteract(permission string, request Interacti
 		return InteractionNeedsApproval
 	}
 
+	// Nobody named you, so nobody invited you
 	return InteractionDenied
 }
 
 /******************************************
  * Helpers
  ******************************************/
-
-// approvalLists returns the automatic and manual approval lists for a permission, with that
-// permission's default when the policy does not define it
-func (policy InteractionPolicy) approvalLists(permission string) (sliceof.String, sliceof.String) {
-
-	if policy.Defines(permission) {
-		return policy.AutomaticApproval(permission), policy.ManualApproval(permission)
-	}
-
-	// RULE: FEP-044f requires approval for every quote but a self-quote
-	if permission == vocab.PropertyCanQuote {
-		return sliceof.NewString(), sliceof.NewString()
-	}
-
-	// RULE: GoToSocial approves Public at once for any permission a policy does not define
-	return sliceof.String{vocab.NamespaceActivityStreamsPublic}, sliceof.NewString()
-}
-
-// approvalList returns the IRIs in one approval list of a sub-policy, reading the legacy key only
-// when the current key is missing or null
-func (policy InteractionPolicy) approvalList(permission string, key string, legacyKey string) sliceof.String {
-
-	subPolicy := interactionMap(policy.Map()[permission])
-
-	// RULE: JSON null means "unset", so it never hides the legacy key
-	if value := subPolicy[key]; value != nil {
-		return interactionIDs(value)
-	}
-
-	return interactionIDs(subPolicy[legacyKey])
-}
-
-// isMemberOfAny returns TRUE if the request's actor belongs to any collection in the list.  It skips
-// Public and the object's own actors, which are actors and not collections.
-func (request InteractionRequest) isMemberOfAny(ids sliceof.String) bool {
-
-	if request.IsMember == nil {
-		return false
-	}
-
-	for _, id := range ids {
-
-		if isPublicIRI(id) || (id == request.ActorID) || (id == request.AuthorID) {
-			continue
-		}
-
-		if request.IsMember(id) {
-			return true
-		}
-	}
-
-	return false
-}
-
-// isPublicIRI returns TRUE if the IRI is any form of the ActivityStreams Public collection
-func isPublicIRI(id string) bool {
-
-	switch id {
-	case vocab.NamespaceActivityStreamsPublic, vocab.NamespaceASPublic, vocab.NamespacePublic:
-		return true
-	}
-
-	return false
-}
 
 // interactionMap coerces a JSON-LD value into a map: a map is used as-is, a list uses its first
 // item, an IRI becomes a map holding only its "id", and any other value becomes an empty map
@@ -322,13 +212,65 @@ func interactionMap(value any) mapof.Any {
 		if typed != "" {
 			return mapof.Any{vocab.PropertyID: typed}
 		}
+
+	// Named slice and map types, such as MongoDB's primitive.A and primitive.M, match no case above
+	default:
+		if list, isList := reflectList(value); isList {
+			return interactionMap(list)
+		}
+
+		if object, isObject := reflectObject(value); isObject {
+			return object
+		}
 	}
 
 	return mapof.NewAny()
 }
 
-// interactionIDs coerces a JSON-LD value into a list of IRIs: a string is one IRI, a map
-// contributes its "id" (or JSON-LD's "@id"), and a list contributes each of its items
+// approvalList returns the IRIs in one approval list of a sub-policy, reading the legacy key only
+// when the current key is missing or null
+func (policy InteractionPolicy) approvalList(permission string, key string, legacyKey string) sliceof.String {
+
+	subPolicy := interactionMap(policy.Map()[permission])
+
+	// RULE: JSON null means "unset", so it never hides the legacy key
+	if value := subPolicy[key]; value != nil {
+		return interactionIDs(value)
+	}
+
+	return interactionIDs(subPolicy[legacyKey])
+}
+
+// approvalLists returns the automatic and manual approval lists for a permission, with that
+// permission's default when the policy does not define it
+func (policy InteractionPolicy) approvalLists(permission string) (sliceof.String, sliceof.String) {
+
+	if policy.Defines(permission) {
+		return policy.AutomaticApproval(permission), policy.ManualApproval(permission)
+	}
+
+	// RULE: FEP-044f requires approval for every quote but a self-quote
+	if permission == vocab.PropertyCanQuote {
+		return sliceof.NewString(), sliceof.NewString()
+	}
+
+	// RULE: GoToSocial approves Public at once for any permission a policy does not define
+	return sliceof.String{vocab.NamespaceActivityStreamsPublic}, sliceof.NewString()
+}
+
+// isPublicIRI returns TRUE if the IRI is any form of the ActivityStreams Public collection
+func isPublicIRI(id string) bool {
+
+	switch id {
+	case vocab.NamespaceActivityStreamsPublic, vocab.NamespaceASPublic, vocab.NamespacePublic:
+		return true
+	}
+
+	return false
+}
+
+// interactionIDs coerces a JSON-LD value into a list of IRIs: a string is one IRI, a map contributes
+// its "id" (or JSON-LD's "@id"), and a list contributes each of its items
 func interactionIDs(value any) sliceof.String {
 
 	result := sliceof.NewString()
@@ -373,7 +315,53 @@ func interactionIDs(value any) sliceof.String {
 		for _, item := range typed {
 			result = append(result, interactionIDs(item)...)
 		}
+
+	// Named slice and map types, such as MongoDB's primitive.A and primitive.M, match no case above
+	default:
+		if list, isList := reflectList(value); isList {
+			return interactionIDs(list)
+		}
+
+		if object, isObject := reflectObject(value); isObject {
+			return interactionIDs(map[string]any(object))
+		}
 	}
 
 	return result
+}
+
+// reflectList returns the items of any slice or array, whatever its named type
+func reflectList(value any) ([]any, bool) {
+
+	reflected := reflect.ValueOf(value)
+
+	if (reflected.Kind() != reflect.Slice) && (reflected.Kind() != reflect.Array) {
+		return nil, false
+	}
+
+	result := make([]any, reflected.Len())
+
+	for index := range result {
+		result[index] = reflected.Index(index).Interface()
+	}
+
+	return result, true
+}
+
+// reflectObject returns the entries of any map with string keys, whatever its named type
+func reflectObject(value any) (mapof.Any, bool) {
+
+	reflected := reflect.ValueOf(value)
+
+	if (reflected.Kind() != reflect.Map) || (reflected.Type().Key().Kind() != reflect.String) {
+		return nil, false
+	}
+
+	result := make(mapof.Any, reflected.Len())
+
+	for iterator := reflected.MapRange(); iterator.Next(); {
+		result[iterator.Key().String()] = iterator.Value().Interface()
+	}
+
+	return result, true
 }

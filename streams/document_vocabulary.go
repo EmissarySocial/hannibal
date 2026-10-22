@@ -29,7 +29,7 @@ func (document Document) ID() string {
 
 	// Try the JSON-LD standard "@id" property second
 	if id := document.Get(vocab.PropertyID_Alternate); id.NotNil() {
-		return document.Get(vocab.PropertyID).String()
+		return id.String()
 	}
 
 	// LOL, no.
@@ -566,11 +566,13 @@ func (document Document) Width() int {
  * https://docs.gotosocial.org/en/latest/federation/interaction_controls/
  ******************************************/
 
-// InteractionPolicy returns the document's interactionPolicy property, loading it first when it
-// was published as an IRI.
+// InteractionPolicy returns the document's interactionPolicy property.  A policy published as an
+// IRI is not loaded, and allows what GoToSocial allows by default.
 // https://gotosocial.org/ns#interactionPolicy
 func (document Document) InteractionPolicy() InteractionPolicy {
-	return NewInteractionPolicy(document.Get(vocab.PropertyInteractionPolicy).LoadLink())
+
+	// RULE: Never load the policy; every server embeds it, and none follows an IRI (see AGENTS.md)
+	return NewInteractionPolicy(document.Get(vocab.PropertyInteractionPolicy))
 }
 
 // InteractingObject returns an authorization's interactingObject property: the interaction it approves.

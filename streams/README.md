@@ -52,8 +52,8 @@ if document.IsSameOrigin(actor.ID()) {
 
 ### Who may interact
 
-`Document.InteractionPolicy()` reads GoToSocial's `interactionPolicy`, loading it first when it was
-published as an IRI. `CanInteract` answers it for one actor and one permission: `vocab.PropertyCanLike`,
+`Document.InteractionPolicy()` reads GoToSocial's embedded `interactionPolicy`. A policy published as
+an IRI is never loaded, and allows GoToSocial's defaults. `CanInteract` answers it for one actor and one permission: `vocab.PropertyCanLike`,
 `PropertyCanReply`, `PropertyCanAnnounce`, or FEP-044f's `PropertyCanQuote`.
 
 ```go

@@ -7,8 +7,8 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-// TestDocument_ID confirms ID reads the ActivityPub "id" property and returns an
-// empty string when no id is present.
+// TestDocument_ID confirms ID prefers "id", falls back to "@id", and returns an
+// empty string when neither is present.
 func TestDocument_ID(t *testing.T) {
 
 	assert.Equal(t, "https://example.com/1",
@@ -19,6 +19,12 @@ func TestDocument_ID(t *testing.T) {
 
 	// A document with no id returns the empty string.
 	assert.Equal(t, "", NewDocument(map[string]any{vocab.PropertyName: "x"}).ID())
+
+	// Falls back to the JSON-LD "@id" alternate, which "id" wins over.
+	assert.Equal(t, "https://example.com/3",
+		NewDocument(map[string]any{vocab.PropertyID_Alternate: "https://example.com/3"}).ID())
+	assert.Equal(t, "https://example.com/4",
+		NewDocument(map[string]any{vocab.PropertyID: "https://example.com/4", vocab.PropertyID_Alternate: "https://example.com/5"}).ID())
 }
 
 // TestDocument_Type confirms Type prefers "type", falls back to "@type", and

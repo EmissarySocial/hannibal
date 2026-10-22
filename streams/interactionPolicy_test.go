@@ -2,8 +2,10 @@ package streams
 
 import (
 	"encoding/json"
+	"fmt"
 	"testing"
 
+	"github.com/benpate/hannibal/property"
 	"github.com/benpate/hannibal/vocab"
 	"github.com/benpate/rosetta/mapof"
 	"github.com/benpate/rosetta/sliceof"
@@ -205,7 +207,7 @@ func TestInteractionPolicy_CanInteract_LooksUpOnlyWhatItNeeds(t *testing.T) {
 	require.Equal(t, InteractionDenied, followers.CanInteract(vocab.PropertyCanReply, request), "no IsMember means no memberships")
 }
 
-// TestDocument_InteractionPolicy pins that the accessor reads an inline policy, and loads one published as an IRI
+// TestDocument_InteractionPolicy pins that the accessor reads an inline policy, and never loads one published as an IRI
 func TestDocument_InteractionPolicy(t *testing.T) {
 
 	const policyID = "https://example.com/note/1/policy"
@@ -226,7 +228,16 @@ func TestDocument_InteractionPolicy(t *testing.T) {
 		vocab.PropertyID:                "https://example.com/note/1",
 		vocab.PropertyInteractionPolicy: policyID,
 	}, WithClient(client))
-	require.Equal(t, sliceof.String{policyTestAuthor}, linked.InteractionPolicy().AutomaticApproval(vocab.PropertyCanReply))
+
+	policy := linked.InteractionPolicy()
+	require.True(t, policy.IsNil(), "an IRI is not a policy")
+	require.Equal(t, policyID, policy.ID())
+	require.Equal(t, InteractionAllowed, policy.CanInteract(vocab.PropertyCanReply, InteractionRequest{ActorID: policyTestStranger}), "and allows the defaults")
+
+	client.mutex.Lock()
+	_, loaded := client.options[policyID]
+	client.mutex.Unlock()
+	require.False(t, loaded, "the IRI is never loaded")
 
 	require.True(t, NewDocument(map[string]any{vocab.PropertyID: "https://example.com/note/1"}).InteractionPolicy().IsNil())
 }
@@ -257,4 +268,129 @@ func TestDocument_Quote(t *testing.T) {
 	require.Equal(t, vocab.ObjectTypeQuoteAuthorization, authorization.Type())
 	require.Equal(t, "https://other.example/notes/quoting", authorization.InteractingObject().ID())
 	require.Equal(t, quoted, authorization.InteractionTarget().ID())
+}
+
+// TestInteractionPolicy_ZeroValue pins that an unset InteractionPolicy is usable, and allows GoToSocial's defaults
+func TestInteractionPolicy_ZeroValue(t *testing.T) {
+
+	policy := InteractionPolicy{}
+
+	require.NotNil(t, policy.Map())
+	require.Empty(t, policy.Map())
+	require.Equal(t, "", policy.ID())
+	require.True(t, policy.IsNil())
+	require.False(t, policy.NotNil())
+	require.Empty(t, policy.AutomaticApproval(vocab.PropertyCanReply))
+	require.Equal(t, InteractionAllowed, policy.CanInteract(vocab.PropertyCanReply, InteractionRequest{ActorID: policyTestStranger}))
+
+	encoded, err := json.Marshal(policy)
+	require.NoError(t, err)
+	require.JSONEq(t, `{}`, string(encoded))
+}
+
+// TestInteractionPolicy_MarshalJSON_Error pins that a value JSON cannot encode returns an error, not a panic
+func TestInteractionPolicy_MarshalJSON_Error(t *testing.T) {
+
+	policy := NewInteractionPolicy(map[string]any{vocab.PropertyCanReply: make(chan int)})
+
+	_, err := policy.MarshalJSON()
+	require.Error(t, err)
+}
+
+// TestInteractionMap_Shapes pins every Go value interactionMap accepts
+func TestInteractionMap_Shapes(t *testing.T) {
+
+	canLike := mapof.Any{vocab.PropertyCanLike: map[string]any{vocab.PropertyAutomaticApproval: policyTestAuthor}}
+
+	require.Equal(t, canLike, interactionMap(NewInteractionPolicy(canLike)), "an InteractionPolicy")
+	require.Equal(t, canLike, interactionMap(property.NewValue(map[string]any(canLike))), "a property.Value")
+	require.Equal(t, canLike, interactionMap(sliceof.Any{map[string]any(canLike)}), "a sliceof.Any")
+	require.Equal(t, mapof.NewAny(), interactionMap(""), "an empty string")
+	require.Equal(t, mapof.NewAny(), interactionMap(true), "a boolean")
+}
+
+// TestInteractionIDs_Shapes pins every Go value interactionIDs accepts
+func TestInteractionIDs_Shapes(t *testing.T) {
+
+	both := sliceof.String{policyTestAuthor, policyTestStranger}
+
+	require.Equal(t, both, interactionIDs(NewDocument([]any{policyTestAuthor, policyTestStranger})), "a Document")
+	require.Equal(t, both, interactionIDs(property.NewValue([]any{policyTestAuthor, policyTestStranger})), "a property.Value")
+	require.Equal(t, sliceof.String{policyTestAuthor}, interactionIDs(mapof.Any{vocab.PropertyID: policyTestAuthor}), "a mapof.Any")
+	require.Equal(t, both, interactionIDs([]string{policyTestAuthor, "", policyTestStranger}), "a []string, without empties")
+	require.Equal(t, both, interactionIDs(sliceof.String{policyTestAuthor, policyTestStranger}), "a sliceof.String")
+	require.Equal(t, both, interactionIDs(sliceof.Any{policyTestAuthor, map[string]any{vocab.PropertyID_Alternate: policyTestStranger}}), "a sliceof.Any")
+	require.Equal(t, sliceof.String{policyTestAuthor}, interactionIDs([]any{[]any{policyTestAuthor}}), "a nested list")
+	require.Empty(t, interactionIDs(42), "a number")
+	require.Empty(t, interactionIDs(nil), "nil")
+	require.Empty(t, interactionIDs(map[string]any{vocab.PropertyID: 42}), "an id that is not an IRI")
+}
+
+// ExampleInteractionPolicy_CanInteract shows how a reply is decided against a post's policy
+func ExampleInteractionPolicy_CanInteract() {
+
+	post := NewDocument(map[string]any{
+		vocab.PropertyID:           "https://social.example/notes/1",
+		vocab.PropertyAttributedTo: "https://social.example/users/author",
+		vocab.PropertyInteractionPolicy: map[string]any{
+			vocab.PropertyCanReply: map[string]any{
+				vocab.PropertyAutomaticApproval: []any{"https://social.example/users/author/followers"},
+				vocab.PropertyManualApproval:    []any{vocab.NamespaceActivityStreamsPublic},
+			},
+		},
+	})
+
+	request := func(actorID string, isFollower bool) InteractionRequest {
+		return InteractionRequest{
+			ActorID:  actorID,
+			AuthorID: post.AttributedTo().ID(),
+			IsMember: func(collectionID string) bool {
+				return isFollower && (collectionID == "https://social.example/users/author/followers")
+			},
+		}
+	}
+
+	policy := post.InteractionPolicy()
+	fmt.Println(policy.CanInteract(vocab.PropertyCanReply, request("https://other.example/users/follower", true)) == InteractionAllowed)
+	fmt.Println(policy.CanInteract(vocab.PropertyCanReply, request("https://other.example/users/stranger", false)) == InteractionNeedsApproval)
+	fmt.Println(policy.CanInteract(vocab.PropertyCanQuote, request("https://other.example/users/follower", true)) == InteractionDenied)
+
+	// Output:
+	// true
+	// true
+	// true
+}
+
+// policyTestList and policyTestMap are named types, the way MongoDB's driver returns arrays (primitive.A)
+// and documents (primitive.M); a type switch on []any or map[string]any matches neither
+type policyTestList []any
+
+type policyTestMap map[string]any
+
+// TestInteractionPolicy_NamedTypes pins that a policy read back from a database, with named slice and
+// map types at any level, decides the same way as one decoded from JSON
+func TestInteractionPolicy_NamedTypes(t *testing.T) {
+
+	policy := NewInteractionPolicy(policyTestMap{
+		vocab.PropertyCanReply: policyTestMap{
+			vocab.PropertyAutomaticApproval: policyTestList{vocab.NamespaceActivityStreamsPublic},
+			vocab.PropertyManualApproval:    policyTestList{policyTestMap{vocab.PropertyID: policyTestStranger}},
+		},
+		vocab.PropertyCanLike: policyTestList{mapof.Any{vocab.PropertyAutomaticApproval: []string{policyTestAuthor}}},
+	})
+
+	require.True(t, policy.Defines(vocab.PropertyCanReply))
+	require.Equal(t, sliceof.String{vocab.NamespaceActivityStreamsPublic}, policy.AutomaticApproval(vocab.PropertyCanReply))
+	require.Equal(t, sliceof.String{policyTestStranger}, policy.ManualApproval(vocab.PropertyCanReply))
+	require.Equal(t, sliceof.String{policyTestAuthor}, policy.AutomaticApproval(vocab.PropertyCanLike), "a named list of maps uses its first item")
+
+	other := InteractionRequest{ActorID: "https://other.example/users/someone"}
+	require.Equal(t, InteractionAllowed, policy.CanInteract(vocab.PropertyCanReply, other))
+	require.Equal(t, InteractionNeedsApproval, policy.CanInteract(vocab.PropertyCanReply, InteractionRequest{ActorID: policyTestStranger}))
+	require.Equal(t, InteractionDenied, policy.CanInteract(vocab.PropertyCanLike, other))
+
+	require.Equal(t, sliceof.String{policyTestAuthor}, interactionIDs([2]string{policyTestAuthor, ""}), "an array")
+	require.Empty(t, interactionIDs(map[int]any{1: policyTestAuthor}), "a map without string keys")
+	require.Equal(t, mapof.NewAny(), interactionMap(map[int]any{1: policyTestAuthor}), "a map without string keys")
+	require.Equal(t, mapof.NewAny(), interactionMap(policyTestList{}), "an empty named list")
 }
