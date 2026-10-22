@@ -1,6 +1,6 @@
 module github.com/benpate/hannibal
 
-go 1.27.1
+go 1.27.3
 
 require (
 	github.com/benpate/derp v0.44.0
