@@ -235,3 +235,112 @@ func FuzzDocumentIsSameOrigin(f *testing.F) {
 		require.True(t, NewDocument(map[string]any{vocab.PropertyID: url}).IsSameOrigin(NewDocument(map[string]any{vocab.PropertyID: id}).ID()))
 	})
 }
+
+// seedInteractionPolicyJSON adds interactionPolicy shapes, real and hostile, to a fuzz corpus
+func seedInteractionPolicyJSON(f *testing.F) {
+	f.Add([]byte(`{"canReply":{"automaticApproval":["https://www.w3.org/ns/activitystreams#Public"]}}`), "https://b.example/u/s")
+	f.Add([]byte(`{"canReply":{"automaticApproval":["https://a.example/u/a"],"manualApproval":["as:Public"]}}`), "https://b.example/u/s")
+	f.Add([]byte(`{"canLike":{"always":["https://a.example/u/a/followers"],"approvalRequired":"Public"}}`), "https://b.example/u/s")
+	f.Add([]byte(`{"canQuote":{"automaticApproval":[{"id":"https://b.example/u/s"},{"@id":"x"},{"type":"Link"}]}}`), "https://b.example/u/s")
+	f.Add([]byte(`{"canReply":{"automaticApproval":null,"always":[[["deep"]]]},"canAnnounce":[]}`), "")
+	f.Add([]byte(`[{"canReply":"https://a.example/policy"},7]`), "https://a.example/u/a")
+	f.Add([]byte(`"https://a.example/policy"`), "https://b.example/u/s")
+	f.Add([]byte(`{"canReply":{"automaticApproval":{"id":{"id":{"id":"x"}}}}}`), "x")
+	f.Add([]byte(`null`), "")
+	f.Add([]byte(`{`), "")
+}
+
+// FuzzInteractionPolicyUnmarshalJSON parses arbitrary bytes into an InteractionPolicy, and confirms that a
+// successful parse re-encodes stably and answers every permission without panicking or breaking GoToSocial's rules
+func FuzzInteractionPolicyUnmarshalJSON(f *testing.F) {
+
+	seedInteractionPolicyJSON(f)
+
+	f.Fuzz(func(t *testing.T, data []byte, actorID string) {
+
+		policy := InteractionPolicy{}
+
+		// A parse error is an acceptable outcome; it must leave nothing half-decoded
+		if err := json.Unmarshal(data, &policy); err != nil {
+			return
+		}
+
+		// Re-encoding is stable: encode, decode, encode gives the same bytes
+		encoded, err := json.Marshal(policy)
+		require.NoError(t, err)
+
+		again := InteractionPolicy{}
+		require.NoError(t, json.Unmarshal(encoded, &again))
+
+		reencoded, err := json.Marshal(again)
+		require.NoError(t, err)
+		require.JSONEq(t, string(encoded), string(reencoded))
+
+		// Every permission answers with a known result, and the fixed rules always hold
+		const authorID = "https://a.example/u/a"
+		request := InteractionRequest{
+			ActorID:   actorID,
+			AuthorID:  authorID,
+			Mentioned: []string{actorID},
+			IsMember:  func(collectionID string) bool { return len(collectionID)%2 == 0 },
+		}
+
+		for _, permission := range []string{vocab.PropertyCanLike, vocab.PropertyCanReply, vocab.PropertyCanAnnounce, vocab.PropertyCanQuote} {
+
+			result := policy.CanInteract(permission, request)
+			require.Contains(t, []InteractionResult{InteractionDenied, InteractionNeedsApproval, InteractionAllowed}, result)
+
+			if actorID == "" {
+				require.Equal(t, InteractionDenied, result, "an anonymous actor is always denied")
+			}
+
+			author := request
+			author.ActorID = authorID
+			require.Equal(t, InteractionAllowed, policy.CanInteract(permission, author), "the author is always allowed")
+
+			_ = policy.Defines(permission)
+			_ = policy.AutomaticApproval(permission)
+			_ = policy.ManualApproval(permission)
+		}
+
+		require.Equal(t, policy.IsNil(), !policy.NotNil())
+		_ = policy.ID()
+	})
+}
+
+// FuzzDocumentInteractionAccessors reads the interaction and quote accessors of an arbitrary document, and
+// confirms that none of them panics, and that reading a map's interactionPolicy never loads anything
+func FuzzDocumentInteractionAccessors(f *testing.F) {
+
+	seedJSON(f)
+	f.Add([]byte(`{"interactionPolicy":"https://example.com/note/policy","quote":"https://example.com/note/q"}`))
+	f.Add([]byte(`{"interactionPolicy":[{"canReply":{}}],"quoteUrl":["a","b"],"_misskey_quote":{"id":"c"}}`))
+	f.Add([]byte(`{"quoteAuthorization":{"type":"QuoteAuthorization","interactingObject":"a","interactionTarget":{"id":"b"}}}`))
+
+	f.Fuzz(func(t *testing.T, data []byte) {
+
+		var value any
+
+		if err := json.Unmarshal(data, &value); err != nil {
+			return
+		}
+
+		client := newRecordingClient()
+		document := NewDocument(value, WithClient(client))
+
+		// RULE: The policy is read, never loaded
+		policy := document.InteractionPolicy()
+
+		if document.IsMap() {
+			client.mutex.Lock()
+			loads := len(client.options)
+			client.mutex.Unlock()
+			require.Zero(t, loads, "reading interactionPolicy loaded a document")
+		}
+
+		_ = policy.CanInteract(vocab.PropertyCanReply, InteractionRequest{ActorID: "https://b.example/u/s"})
+		_ = document.Quote().ID()
+		_ = document.QuoteAuthorization().InteractingObject().ID()
+		_ = document.QuoteAuthorization().InteractionTarget().ID()
+	})
+}
