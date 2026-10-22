@@ -50,6 +50,27 @@ if document.IsSameOrigin(actor.ID()) {
 }
 ```
 
+### Who may interact
+
+`Document.InteractionPolicy()` reads GoToSocial's `interactionPolicy`, loading it first when it was
+published as an IRI. `CanInteract` answers it for one actor and one permission: `vocab.PropertyCanLike`,
+`PropertyCanReply`, `PropertyCanAnnounce`, or FEP-044f's `PropertyCanQuote`.
+
+```go
+result := document.InteractionPolicy().CanInteract(vocab.PropertyCanReply, streams.InteractionRequest{
+	ActorID:   myActorID,
+	AuthorID:  document.AttributedTo().ID(),
+	Mentioned: slices.Collect(document.RangeMentions()),
+	IsMember:  func(collectionID string) bool { return iBelongTo(collectionID) },
+})
+
+switch result {
+case streams.InteractionAllowed:       // interact at once
+case streams.InteractionNeedsApproval: // the author's server holds the interaction for approval
+case streams.InteractionDenied:        // do not offer the interaction
+}
+```
+
 ### Clients and options
 
 A Document loads linked documents through its `Client` whenever you read a property that holds only a

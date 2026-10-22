@@ -54,6 +54,14 @@ Anything bound through it skips the Carpool: its options make every load carry o
 
 `Document.URL()` returns the `href` of the `text/html` Link when `url` is a list, even when a plain string comes first; otherwise the first value, as a string or a Link's `href`. PeerTube channels and Bandwagon artists list an RSS Link beside the profile page, and before 2026-10-05 `URL()` returned `""` for any list of Links, so every Emissary reader lost the profile link (FUNKWHALE D13). `TestDocument_URL_Links` pins each shape.
 
+## InteractionPolicy reads only GoToSocial's vocabulary
+
+[interactionPolicy.go](streams/interactionPolicy.go) reads GoToSocial's `interactionPolicy` and nothing else. PeerTube's `commentsEnabled`, Mobilizon's `repliesModerationOption`, Pixelfed's `capabilities`, FEP-5624's `canReply`, and Hubzilla's `commentPolicy` were read briefly on 2026-10-22 and removed by Ben's decision the same day; do not add them back without asking. Three rules are easy to get wrong:
+
+- **A missing permission is not "nobody".** GoToSocial approves Public for any sub-policy a post does not define, but FEP-044f requires approval for every quote but a self-quote, so a missing `canQuote` approves only the author. `Defines` counts a sub-policy with an empty list as defined and one with no list as missing.
+- **The most specific entry wins, not the most permissive.** An actor's own IRI beats a collection, and a collection beats Public; only at the same level does automatic approval beat manual. A post open to Public with one actor under `manualApproval` holds that actor's interactions.
+- **`IsMember` is called only for IRIs that might be collections**, never for Public, the actor, or the author, because each call costs the caller a database lookup. `TestInteractionPolicy_CanInteract_LooksUpOnlyWhatItNeeds` pins it.
+
 ## Inbound requests fail closed, with deliberate status codes
 
 - **Malformed JSON in `router.ReceiveRequest` returns 400, not 500.** The `derp.WithBadRequest()` option on that `json.Unmarshal` wrap is important: unmarshal errors are codeless and would otherwise default to 500 for every junk POST from a crawler. `MaxBodySize` caps the body and errors rather than truncating.

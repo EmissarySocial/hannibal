@@ -560,3 +560,52 @@ func (document Document) Updated() time.Time {
 func (document Document) Width() int {
 	return document.Get(vocab.PropertyWidth).Int()
 }
+
+/******************************************
+ * GoToSocial Interaction Policies
+ * https://docs.gotosocial.org/en/latest/federation/interaction_controls/
+ ******************************************/
+
+// InteractionPolicy returns the document's interactionPolicy property, loading it first when it
+// was published as an IRI.
+// https://gotosocial.org/ns#interactionPolicy
+func (document Document) InteractionPolicy() InteractionPolicy {
+	return NewInteractionPolicy(document.Get(vocab.PropertyInteractionPolicy).LoadLink())
+}
+
+// InteractingObject returns an authorization's interactingObject property: the interaction it approves.
+// https://gotosocial.org/ns#interactingObject
+func (document Document) InteractingObject() Document {
+	return document.Get(vocab.PropertyInteractingObject)
+}
+
+// InteractionTarget returns an authorization's interactionTarget property: the object interacted with.
+// https://gotosocial.org/ns#interactionTarget
+func (document Document) InteractionTarget() Document {
+	return document.Get(vocab.PropertyInteractionTarget)
+}
+
+/******************************************
+ * FEP-044f: Consent-respecting quote posts
+ * https://w3id.org/fep/044f
+ ******************************************/
+
+// Quote returns the object that this quote post quotes.  It reads FEP-044f's "quote" first, then
+// the "quoteUrl", "quoteUri", and "_misskey_quote" properties that FEP-044f reads for compatibility.
+// https://w3id.org/fep/044f#quote
+func (document Document) Quote() Document {
+
+	for _, property := range []string{vocab.PropertyQuote, vocab.PropertyQuoteURL, vocab.PropertyQuoteURI, vocab.PropertyMisskeyQuote} {
+		if quote := document.Get(property); quote.NotNil() {
+			return quote
+		}
+	}
+
+	return NilDocument()
+}
+
+// QuoteAuthorization returns the QuoteAuthorization that approves this quote post.
+// https://w3id.org/fep/044f#quoteAuthorization
+func (document Document) QuoteAuthorization() Document {
+	return document.Get(vocab.PropertyQuoteAuthorization)
+}
