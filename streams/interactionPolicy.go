@@ -18,12 +18,6 @@ type InteractionPolicy struct {
 	value mapof.Any
 }
 
-// NewInteractionPolicy creates an InteractionPolicy from any JSON-LD value.  A list uses its first
-// item, an IRI becomes a map holding only its "id", and any other value that is not a map becomes empty.
-func NewInteractionPolicy(value any) InteractionPolicy {
-	return InteractionPolicy{value: interactionMap(value)}
-}
-
 // UnmarshalJSON decodes any JSON value into an InteractionPolicy, using the same rules as NewInteractionPolicy
 func (policy *InteractionPolicy) UnmarshalJSON(data []byte) error {
 
@@ -39,6 +33,12 @@ func (policy *InteractionPolicy) UnmarshalJSON(data []byte) error {
 	return nil // Ain't no policy like an interaction policy
 }
 
+// NewInteractionPolicy creates an InteractionPolicy from any JSON-LD value.  A list uses its first
+// item, an IRI becomes a map holding only its "id", and any other value that is not a map becomes empty.
+func NewInteractionPolicy(value any) InteractionPolicy {
+	return InteractionPolicy{value: interactionMap(value)}
+}
+
 // MarshalJSON encodes the InteractionPolicy as its JSON-LD map
 func (policy InteractionPolicy) MarshalJSON() ([]byte, error) {
 
@@ -51,71 +51,6 @@ func (policy InteractionPolicy) MarshalJSON() ([]byte, error) {
 	}
 
 	return result, nil
-}
-
-/******************************************
- * Accessors
- ******************************************/
-
-// Map returns the InteractionPolicy's JSON-LD map, which is never nil.  The map may be shared with
-// the value the policy was created from, so callers must treat it as read-only.
-func (policy InteractionPolicy) Map() mapof.Any {
-
-	if policy.value == nil {
-		return mapof.NewAny()
-	}
-
-	return policy.value
-}
-
-// ID returns the InteractionPolicy's ID, which is set only when the policy was published as an IRI
-// https://www.w3.org/TR/activitystreams-vocabulary/#dfn-id
-func (policy InteractionPolicy) ID() string {
-	return policy.Map().GetString(vocab.PropertyID)
-}
-
-// IsNil returns TRUE if the InteractionPolicy states no sub-policies
-func (policy InteractionPolicy) IsNil() bool {
-
-	for _, permission := range []string{vocab.PropertyCanLike, vocab.PropertyCanReply, vocab.PropertyCanAnnounce, vocab.PropertyCanQuote} {
-		if policy.Defines(permission) {
-			return false
-		}
-	}
-
-	return true
-}
-
-// NotNil returns TRUE if the InteractionPolicy states at least one sub-policy
-func (policy InteractionPolicy) NotNil() bool {
-	return !policy.IsNil()
-}
-
-// Defines returns TRUE if the InteractionPolicy states either approval list for the permission, even
-// an empty one.  A missing or null list is not stated.
-func (policy InteractionPolicy) Defines(permission string) bool {
-
-	subPolicy := interactionMap(policy.Map()[permission])
-
-	for _, key := range []string{vocab.PropertyAutomaticApproval, vocab.PropertyManualApproval, vocab.PropertyAlways, vocab.PropertyApprovalRequired} {
-		if subPolicy[key] != nil {
-			return true
-		}
-	}
-
-	return false
-}
-
-// AutomaticApproval returns the actors and collections whose interactions of this permission are approved at once
-// https://gotosocial.org/ns#automaticApproval
-func (policy InteractionPolicy) AutomaticApproval(permission string) sliceof.String {
-	return policy.approvalList(permission, vocab.PropertyAutomaticApproval, vocab.PropertyAlways)
-}
-
-// ManualApproval returns the actors and collections whose interactions of this permission wait for the author's approval
-// https://gotosocial.org/ns#manualApproval
-func (policy InteractionPolicy) ManualApproval(permission string) sliceof.String {
-	return policy.approvalList(permission, vocab.PropertyManualApproval, vocab.PropertyApprovalRequired)
 }
 
 /******************************************
@@ -175,9 +110,94 @@ func (policy InteractionPolicy) CanInteract(permission string, request Interacti
 	return InteractionDenied
 }
 
+// approvalLists returns the automatic and manual approval lists for a permission, with that
+// permission's default when the policy does not define it
+func (policy InteractionPolicy) approvalLists(permission string) (sliceof.String, sliceof.String) {
+
+	if policy.Defines(permission) {
+		return policy.AutomaticApproval(permission), policy.ManualApproval(permission)
+	}
+
+	// RULE: FEP-044f requires approval for every quote but a self-quote
+	if permission == vocab.PropertyCanQuote {
+		return sliceof.NewString(), sliceof.NewString()
+	}
+
+	// RULE: GoToSocial approves Public at once for any permission a policy does not define
+	return sliceof.String{vocab.NamespaceActivityStreamsPublic}, sliceof.NewString()
+}
+
+/******************************************
+ * Accessors
+ ******************************************/
+
+// NotNil returns TRUE if the InteractionPolicy states at least one sub-policy
+func (policy InteractionPolicy) NotNil() bool {
+	return !policy.IsNil()
+}
+
+// IsNil returns TRUE if the InteractionPolicy states no sub-policies
+func (policy InteractionPolicy) IsNil() bool {
+
+	for _, permission := range []string{vocab.PropertyCanLike, vocab.PropertyCanReply, vocab.PropertyCanAnnounce, vocab.PropertyCanQuote} {
+		if policy.Defines(permission) {
+			return false
+		}
+	}
+
+	return true
+}
+
+// Defines returns TRUE if the InteractionPolicy states either approval list for the permission, even
+// an empty one.  A missing or null list is not stated.
+func (policy InteractionPolicy) Defines(permission string) bool {
+
+	subPolicy := interactionMap(policy.Map()[permission])
+
+	for _, key := range []string{vocab.PropertyAutomaticApproval, vocab.PropertyManualApproval, vocab.PropertyAlways, vocab.PropertyApprovalRequired} {
+		if subPolicy[key] != nil {
+			return true
+		}
+	}
+
+	return false
+}
+
+// AutomaticApproval returns the actors and collections whose interactions of this permission are approved at once
+// https://gotosocial.org/ns#automaticApproval
+func (policy InteractionPolicy) AutomaticApproval(permission string) sliceof.String {
+	return policy.approvalList(permission, vocab.PropertyAutomaticApproval, vocab.PropertyAlways)
+}
+
+// ManualApproval returns the actors and collections whose interactions of this permission wait for the author's approval
+// https://gotosocial.org/ns#manualApproval
+func (policy InteractionPolicy) ManualApproval(permission string) sliceof.String {
+	return policy.approvalList(permission, vocab.PropertyManualApproval, vocab.PropertyApprovalRequired)
+}
+
+// ID returns the InteractionPolicy's ID, which is set only when the policy was published as an IRI
+// https://www.w3.org/TR/activitystreams-vocabulary/#dfn-id
+func (policy InteractionPolicy) ID() string {
+	return policy.Map().GetString(vocab.PropertyID)
+}
+
 /******************************************
  * Helpers
  ******************************************/
+
+// approvalList returns the IRIs in one approval list of a sub-policy, reading the legacy key only
+// when the current key is missing or null
+func (policy InteractionPolicy) approvalList(permission string, key string, legacyKey string) sliceof.String {
+
+	subPolicy := interactionMap(policy.Map()[permission])
+
+	// RULE: JSON null means "unset", so it never hides the legacy key
+	if value := subPolicy[key]; value != nil {
+		return interactionIDs(value)
+	}
+
+	return interactionIDs(subPolicy[legacyKey])
+}
 
 // interactionMap coerces a JSON-LD value into a map: a map is used as-is, a list uses its first
 // item, an IRI becomes a map holding only its "id", and any other value becomes an empty map
@@ -227,35 +247,15 @@ func interactionMap(value any) mapof.Any {
 	return mapof.NewAny()
 }
 
-// approvalList returns the IRIs in one approval list of a sub-policy, reading the legacy key only
-// when the current key is missing or null
-func (policy InteractionPolicy) approvalList(permission string, key string, legacyKey string) sliceof.String {
+// Map returns the InteractionPolicy's JSON-LD map, which is never nil.  The map may be shared with
+// the value the policy was created from, so callers must treat it as read-only.
+func (policy InteractionPolicy) Map() mapof.Any {
 
-	subPolicy := interactionMap(policy.Map()[permission])
-
-	// RULE: JSON null means "unset", so it never hides the legacy key
-	if value := subPolicy[key]; value != nil {
-		return interactionIDs(value)
+	if policy.value == nil {
+		return mapof.NewAny()
 	}
 
-	return interactionIDs(subPolicy[legacyKey])
-}
-
-// approvalLists returns the automatic and manual approval lists for a permission, with that
-// permission's default when the policy does not define it
-func (policy InteractionPolicy) approvalLists(permission string) (sliceof.String, sliceof.String) {
-
-	if policy.Defines(permission) {
-		return policy.AutomaticApproval(permission), policy.ManualApproval(permission)
-	}
-
-	// RULE: FEP-044f requires approval for every quote but a self-quote
-	if permission == vocab.PropertyCanQuote {
-		return sliceof.NewString(), sliceof.NewString()
-	}
-
-	// RULE: GoToSocial approves Public at once for any permission a policy does not define
-	return sliceof.String{vocab.NamespaceActivityStreamsPublic}, sliceof.NewString()
+	return policy.value
 }
 
 // isPublicIRI returns TRUE if the IRI is any form of the ActivityStreams Public collection
