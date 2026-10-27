@@ -190,7 +190,7 @@ func TestRefreshKey_NilBehavesAsBefore(t *testing.T) {
 }
 
 // TestRefreshKey_NotCalledOnUnparseableSignature is the first of four early-return cases.  Each one
-// is a separate path back out of Verify, and each one must cost zero lookups -- a refresh that fired
+// is a separate path back out of Verify, and each one must cost zero refreshes -- a refresh that fired
 // before the hash loop would let anyone provoke an outbound fetch at a host of their choosing.
 func TestRefreshKey_NotCalledOnUnparseableSignature(t *testing.T) {
 
