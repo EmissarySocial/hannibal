@@ -16,6 +16,8 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+// TestVerify_Manual confirms that a request signed with Sign carries the expected Digest,
+// and verifies against the signing key's public key
 func TestVerify_Manual(t *testing.T) {
 
 	// Create a new Request
@@ -46,6 +48,7 @@ func TestVerify_Manual(t *testing.T) {
 	require.Nil(t, err)
 }
 
+// TestSignAndVerify_RSA_SHA256 confirms an RSA signature over a SHA-256 digest verifies
 func TestSignAndVerify_RSA_SHA256(t *testing.T) {
 
 	// Create an RSA key
@@ -63,6 +66,7 @@ func TestSignAndVerify_RSA_SHA256(t *testing.T) {
 	require.Nil(t, err)
 }
 
+// TestSignAndVerify_RSA_SHA512 confirms an RSA signature over a SHA-512 digest verifies
 func TestSignAndVerify_RSA_SHA512(t *testing.T) {
 
 	// Create an RSA key
@@ -80,6 +84,8 @@ func TestSignAndVerify_RSA_SHA512(t *testing.T) {
 	require.Nil(t, err)
 }
 
+// TestSignAndVerify_Emissary signs a captured Emissary signing string with the test key,
+// and reports any error from verifying it
 func TestSignAndVerify_Emissary(t *testing.T) {
 
 	privateKey, publicKey := getTestKeys()
@@ -145,6 +151,8 @@ func TestVerifyHashAndSignature_ReportsOnlyAtTrace(t *testing.T) {
 	}
 }
 
+// getTestKeys returns a fixed RSA key pair, and panics if either PEM fails to decode
+// or the two keys do not match
 func getTestKeys() (crypto.PrivateKey, crypto.PublicKey) {
 
 	// Decode a Private Key

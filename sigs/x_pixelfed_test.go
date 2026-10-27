@@ -9,6 +9,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+// Test_PixelFed confirms that a captured Undo request from Pixelfed verifies
 func Test_PixelFed(t *testing.T) {
 
 	raw := removeTabs(`POST /@64d68054a4bf39a519f27c67/pub/inbox HTTP/1.1

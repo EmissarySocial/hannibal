@@ -43,6 +43,8 @@ func TestVerify_Dino1(t *testing.T) {
 	require.Nil(t, err)
 }
 
+// TestVerify_Dino2 verifies a second sample request from https://dinochiesa.github.io/httpsig/,
+// signed with a different key
 func TestVerify_Dino2(t *testing.T) {
 
 	requestString := removeTabs(
@@ -77,6 +79,8 @@ func TestVerify_Dino2(t *testing.T) {
 	require.Nil(t, err)
 }
 
+// TestSign_Dino confirms that signing a sample request with a known key produces the
+// expected Signature header
 func TestSign_Dino(t *testing.T) {
 
 	requestString := removeTabs(

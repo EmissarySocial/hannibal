@@ -15,8 +15,10 @@ type mapClient struct {
 	documents map[string]map[string]any
 }
 
+// SetRootClient is a NOOP for this stub
 func (client mapClient) SetRootClient(streams.Client) {}
 
+// Load returns the document stored under this URI, or an error when there is none
 func (client mapClient) Load(uri string, _ ...any) (streams.Document, error) {
 	if value, ok := client.documents[uri]; ok {
 		return streams.NewDocument(value, streams.WithClient(client)), nil
@@ -24,8 +26,11 @@ func (client mapClient) Load(uri string, _ ...any) (streams.Document, error) {
 	return streams.NilDocument(), derp.Internal("collections.mapClient.Load", "Unknown URI", uri)
 }
 
+// Save is a NOOP for this stub
 func (client mapClient) Save(streams.Document) error { return nil }
-func (client mapClient) Delete(_ string) error       { return nil }
+
+// Delete is a NOOP for this stub
+func (client mapClient) Delete(_ string) error { return nil }
 
 // TestRangePages_SinglePage confirms a single inline collection yields exactly
 // one page (itself), with no infinite looping.

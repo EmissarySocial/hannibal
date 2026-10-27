@@ -25,10 +25,16 @@ type mockClient struct {
 	inboxURL string
 }
 
+// SetRootClient is a NOOP for this stub
 func (c mockClient) SetRootClient(streams.Client) {}
-func (c mockClient) Save(streams.Document) error  { return nil }
-func (c mockClient) Delete(string) error          { return nil }
 
+// Save is a NOOP for this stub
+func (c mockClient) Save(streams.Document) error { return nil }
+
+// Delete is a NOOP for this stub
+func (c mockClient) Delete(string) error { return nil }
+
+// Load returns a Person with this URI as its ID, whose inbox is the configured inbox URL
 func (c mockClient) Load(uri string, _ ...any) (streams.Document, error) {
 	return streams.NewDocument(map[string]any{
 		vocab.PropertyID:   uri,
@@ -187,6 +193,8 @@ type inboxRecorder struct {
 	hits   int
 }
 
+// newInboxRecorder starts an inboxRecorder that answers every POST with 200 OK,
+// and closes it when the test ends
 func newInboxRecorder(t *testing.T) *inboxRecorder {
 	t.Helper()
 	recorder := &inboxRecorder{}
@@ -218,12 +226,14 @@ func newSendingActor(t *testing.T, recorder *inboxRecorder) Actor {
 		WithAllowPrivateIPs(true))
 }
 
+// count returns the number of requests the recorder has received
 func (r *inboxRecorder) count() int {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	return r.hits
 }
 
+// lastBody returns the most recent request body, or an empty map when nothing has arrived
 func (r *inboxRecorder) lastBody() mapof.Any {
 	r.mu.Lock()
 	defer r.mu.Unlock()

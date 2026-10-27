@@ -354,4 +354,5 @@ func readCloser(body string) io.ReadCloser {
 // errString is a minimal error type for tests that need a custom error.
 type errString string
 
+// Error returns the error's text
 func (e errString) Error() string { return string(e) }

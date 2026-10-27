@@ -51,6 +51,7 @@ func Test_IETF_Basic_Test_C2(t *testing.T) {
 	require.Nil(t, err)
 }
 
+// Test_IETF_All_Headers_Prep confirms the signing string built for the draft's "All Headers" test case
 func Test_IETF_All_Headers_Prep(t *testing.T) {
 	signedFields := []string{"(request-target)", "(created)", "(expires)", "host", "date", "content-type", "digest", "content-length"}
 	request := testIETFRequest()

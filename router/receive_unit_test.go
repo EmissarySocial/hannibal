@@ -19,6 +19,7 @@ type stubValidator struct {
 	result validator.Result
 }
 
+// Validate returns the configured result, whatever the request and document
 func (s stubValidator) Validate(_ *http.Request, _ *streams.Document) validator.Result {
 	return s.result
 }
@@ -208,4 +209,5 @@ func newActivityRequest(body string) *http.Request {
 // stubError is a minimal error type for tests.
 type stubError string
 
+// Error returns the error's text
 func (e stubError) Error() string { return string(e) }

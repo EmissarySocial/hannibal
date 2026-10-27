@@ -239,6 +239,7 @@ func newRecordingQueue() (*queue.Queue, *taskRecorder) {
 	return q, recorder
 }
 
+// preProcessor records a copy of each task the queue publishes
 func (r *taskRecorder) preProcessor(task *queue.Task) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
@@ -246,6 +247,7 @@ func (r *taskRecorder) preProcessor(task *queue.Task) error {
 	return nil
 }
 
+// names returns the name of every recorded task, in the order published
 func (r *taskRecorder) names() []string {
 	r.mu.Lock()
 	defer r.mu.Unlock()
@@ -259,6 +261,7 @@ func (r *taskRecorder) names() []string {
 // erroringLocator finds the test actor but fails to resolve any recipient.
 type erroringLocator struct{}
 
+// Actor returns the test actor for its own ID, and NotFound for any other ID
 func (erroringLocator) Actor(id string) (Actor, error) {
 	if id == "https://test.actor.social" {
 		return testActor{}, nil
@@ -266,6 +269,7 @@ func (erroringLocator) Actor(id string) (Actor, error) {
 	return nil, derp.NotFound("erroringLocator.Actor", "unknown", id)
 }
 
+// Recipient always fails
 func (erroringLocator) Recipient(_ string) (iter.Seq[string], error) {
 	return nil, derp.Internal("erroringLocator.Recipient", "resolution failed")
 }

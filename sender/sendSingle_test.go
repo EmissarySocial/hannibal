@@ -31,7 +31,10 @@ type keyedActor struct {
 	privateKey crypto.PrivateKey
 }
 
+// ActorID returns the test actor's ID
 func (a keyedActor) ActorID() string { return a.id }
+
+// PrivateKey returns the test actor's key ID and RSA private key
 func (a keyedActor) PrivateKey() (string, crypto.PrivateKey) {
 	return a.keyID, a.privateKey
 }
@@ -41,6 +44,7 @@ type keyedLocator struct {
 	actor keyedActor
 }
 
+// Actor returns the keyed test actor for its own ID, and NotFound for any other ID
 func (l keyedLocator) Actor(id string) (Actor, error) {
 	if id == l.actor.id {
 		return l.actor, nil
@@ -48,6 +52,7 @@ func (l keyedLocator) Actor(id string) (Actor, error) {
 	return nil, derp.NotFound("keyedLocator.Actor", "unknown actor", id)
 }
 
+// Recipient returns an empty sequence for every recipient
 func (l keyedLocator) Recipient(_ string) (iter.Seq[string], error) {
 	return func(_ func(string) bool) {}, nil
 }

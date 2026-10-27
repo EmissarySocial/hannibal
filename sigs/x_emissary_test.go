@@ -11,6 +11,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+// Test_Emissary confirms that a captured hs2019 request from Emissary to activitypub.academy verifies
 func Test_Emissary(t *testing.T) {
 
 	rawHTTP := removeTabs(
@@ -38,6 +39,7 @@ func Test_Emissary(t *testing.T) {
 	require.Nil(t, err)
 }
 
+// Test_Emissary_Digest confirms DigestSHA256 matches the Digest header of the captured Emissary request
 func Test_Emissary_Digest(t *testing.T) {
 	expected := "gH5r8XfomFHwvjZUZAqtbE1MpJkmbgCZ3cQjYGt7ppA="
 	body := `{"@context":"application/activity+json","actor":"https://emdev.ddns.net/@64d68054a4bf39a519f27c67","id":"https://emdev.ddns.net/@64d68054a4bf39a519f27c67/pub/following/64fdf0c1a835dc65840d6ffb","object":"https://activitypub.academy/users/angusius_dukernen","to":"https://activitypub.academy/users/angusius_dukernen/inbox","type":"Follow"}`
@@ -49,6 +51,7 @@ func Test_Emissary_Digest(t *testing.T) {
 	require.Equal(t, expected, DigestSHA256([]byte(body)))
 }
 
+// Test_Emissary_FailedSignature_1 confirms that a captured delivery between two local Emissary servers verifies
 func Test_Emissary_FailedSignature_1(t *testing.T) {
 
 	rawHTTP := removeTabs(
@@ -79,6 +82,8 @@ func Test_Emissary_FailedSignature_1(t *testing.T) {
 	require.Nil(t, err)
 }
 
+// Test_Emissary_FailedSignature_2 confirms that a second captured delivery between two local
+// Emissary servers, with its headers in a different order, verifies
 func Test_Emissary_FailedSignature_2(t *testing.T) {
 
 	rawHTTP := removeTabs(

@@ -10,6 +10,8 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+// TestFunFedi confirms that a request from the FunFedi test suite, with a lowercase
+// "sha-256" Digest, verifies
 func TestFunFedi(t *testing.T) {
 
 	// From transactions sent by https://verify.funfedi.dev/
