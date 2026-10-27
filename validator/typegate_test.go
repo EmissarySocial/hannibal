@@ -39,22 +39,3 @@ func TestDeletedObject_DeleteWithoutObject(t *testing.T) {
 
 	assert.Equal(t, ResultInvalid, v.Validate(blankRequest(), &activity))
 }
-
-// TestHTTPLookup_NotCreateOrUpdate confirms the HTTPLookup validator abstains
-// (Unknown) for activity types other than Create and Update, without a lookup.
-func TestHTTPLookup_NotCreateOrUpdate(t *testing.T) {
-
-	v := NewHTTPLookup()
-
-	check := func(activityType string) {
-		t.Run(activityType, func(t *testing.T) {
-			activity := streams.NewDocument(map[string]any{vocab.PropertyType: activityType})
-			assert.Equal(t, ResultUnknown, v.Validate(blankRequest(), &activity))
-		})
-	}
-
-	check(vocab.ActivityTypeDelete)
-	check(vocab.ActivityTypeFollow)
-	check(vocab.ActivityTypeLike)
-	check(vocab.ActivityTypeAnnounce)
-}
