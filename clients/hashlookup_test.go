@@ -4,6 +4,7 @@ import (
 	"errors"
 	"testing"
 
+	"github.com/benpate/derp"
 	"github.com/benpate/hannibal/streams"
 	"github.com/benpate/hannibal/vocab"
 	"github.com/stretchr/testify/assert"
@@ -23,22 +24,26 @@ type mockInnerClient struct {
 	rootClientSet bool
 }
 
+// Load records the URL and options it was called with, then returns the scripted document and error
 func (c *mockInnerClient) Load(url string, options ...any) (streams.Document, error) {
 	c.lastLoadURL = url
 	c.lastLoadOpts = options
 	return c.loadResult, c.loadErr
 }
 
+// Save records the document it was given
 func (c *mockInnerClient) Save(document streams.Document) error {
 	c.savedDocument = document
 	return nil
 }
 
+// Delete records the document ID it was given
 func (c *mockInnerClient) Delete(documentID string) error {
 	c.deletedID = documentID
 	return nil
 }
 
+// SetRootClient records that it was called, ignoring the client it was given
 func (c *mockInnerClient) SetRootClient(streams.Client) {
 	c.rootClientSet = true
 }
@@ -142,6 +147,7 @@ func TestHashLookup_NotFound(t *testing.T) {
 
 	result, err := client.Load("https://example.com/actor#missing-key")
 	require.Error(t, err)
+	assert.True(t, derp.IsNotFound(err))
 	assert.True(t, result.IsNil())
 }
 
@@ -149,13 +155,15 @@ func TestHashLookup_NotFound(t *testing.T) {
 // propagated.
 func TestHashLookup_InnerError(t *testing.T) {
 
+	innerErr := errors.New("network failure")
 	inner := &mockInnerClient{
-		loadErr: errors.New("network failure"),
+		loadErr: innerErr,
 	}
 	client := NewHashLookup(inner)
 
 	_, err := client.Load("https://example.com/actor#main-key")
 	require.Error(t, err)
+	assert.ErrorIs(t, err, innerErr)
 }
 
 // TestHashLookup_Delegates confirms Save, Delete, and SetRootClient pass through

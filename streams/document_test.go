@@ -8,6 +8,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+// TestDocument confirms that ID reads the "id" of a document built from a map[string]any.
 func TestDocument(t *testing.T) {
 
 	d := NewDocument(map[string]any{
@@ -17,6 +18,7 @@ func TestDocument(t *testing.T) {
 	require.Equal(t, "https://example.com", d.ID())
 }
 
+// TestDocumentMapOfAny confirms that a document built from a mapof.Any is a map, and that ID reads its "id".
 func TestDocumentMapOfAny(t *testing.T) {
 
 	d := NewDocument(mapof.Any{

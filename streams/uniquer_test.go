@@ -64,7 +64,17 @@ func TestUniquer_Range(t *testing.T) {
 func TestUniquer_Range_EarlyStop(t *testing.T) {
 
 	u := NewUniquer[int]()
-	input := slices.Values([]int{1, 2, 3, 4, 5})
+
+	// Count how many values Range pulls from the sequence
+	pulled := 0
+	input := func(yield func(int) bool) {
+		for _, value := range []int{1, 2, 3, 4, 5} {
+			pulled++
+			if !yield(value) {
+				return
+			}
+		}
+	}
 
 	var collected []int
 	for value := range u.Range(input) {
@@ -75,4 +85,5 @@ func TestUniquer_Range_EarlyStop(t *testing.T) {
 	}
 
 	assert.Equal(t, []int{1, 2}, collected)
+	assert.Equal(t, 2, pulled)
 }

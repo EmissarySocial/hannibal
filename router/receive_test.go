@@ -12,6 +12,8 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+// TestReceive runs a captured Mastodon Follow delivery through ReceiveRequest with the default
+// validators, and expects it to be accepted.
 func TestReceive(t *testing.T) {
 
 	httpReader := strings.NewReader(`POST /@66beb0b36afe0012604c5467/pub/inbox HTTP/1.1

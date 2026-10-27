@@ -33,7 +33,7 @@ func TestLabelSet_HiddenAndAnnotations(t *testing.T) {
 	assert.True(t, set.HasAnnotations())
 	assert.Equal(t, "Blocked by server policy", set.Reason())
 
-	assert.Len(t, set.Hidden(), 2)
+	assert.Equal(t, LabelSet{set[0], set[1]}, set.Hidden())
 	assert.Len(t, set.Annotations(), 1)
 	assert.Equal(t, "Politics", set.Annotations()[0].Value)
 }
@@ -49,7 +49,7 @@ func TestLabelSet_AnnotationsOnly(t *testing.T) {
 	assert.False(t, set.IsHidden())
 	assert.True(t, set.HasAnnotations())
 	assert.Equal(t, "", set.Reason())
-	assert.Len(t, set.Annotations(), 2)
+	assert.Equal(t, set, set.Annotations())
 }
 
 // TestLabelSet_Clone confirms a clone owns its own backing array.

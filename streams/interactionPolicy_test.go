@@ -13,9 +13,16 @@ import (
 )
 
 const (
-	policyTestAuthor    = "https://social.example/users/author"
-	policyTestStranger  = "https://other.example/users/stranger"
+	// policyTestAuthor is the IRI of the actor who wrote the object under test
+	policyTestAuthor = "https://social.example/users/author"
+
+	// policyTestStranger is the IRI of an actor with no relationship to the author
+	policyTestStranger = "https://other.example/users/stranger"
+
+	// policyTestMentioned is the IRI of an actor that the object mentions
 	policyTestMentioned = "https://other.example/users/mentioned"
+
+	// policyTestFollowers is the IRI of the author's followers collection
 	policyTestFollowers = "https://social.example/users/author/followers"
 )
 
@@ -365,6 +372,7 @@ func ExampleInteractionPolicy_CanInteract() {
 // and documents (primitive.M); a type switch on []any or map[string]any matches neither
 type policyTestList []any
 
+// policyTestMap is a named map type, standing in for the primitive.M documents that MongoDB's driver returns
 type policyTestMap map[string]any
 
 // TestInteractionPolicy_NamedTypes pins that a policy read back from a database, with named slice and

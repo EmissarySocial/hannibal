@@ -6,6 +6,7 @@ import (
 
 	"github.com/benpate/hannibal/vocab"
 	"github.com/benpate/rosetta/convert"
+	"github.com/benpate/rosetta/sliceof"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -29,8 +30,14 @@ func TestDocument_Get(t *testing.T) {
 // id returns the string itself, without trying to load anything remotely.
 func TestDocument_Get_StringID(t *testing.T) {
 
-	doc := NewDocument("https://example.com/actor")
+	client := newRecordingClient()
+	doc := NewDocument("https://example.com/actor", WithClient(client))
 	assert.Equal(t, "https://example.com/actor", doc.Get(vocab.PropertyID).String())
+
+	client.mutex.Lock()
+	_, loaded := client.options["https://example.com/actor"]
+	client.mutex.Unlock()
+	assert.False(t, loaded, "the id is never loaded")
 }
 
 // TestDocument_HeadTail confirms Head/Tail/Len semantics across a slice.
@@ -71,11 +78,15 @@ func TestDocument_Slice(t *testing.T) {
 		map[string]any{vocab.PropertyID: "https://example.com/2"},
 	})
 
-	assert.Len(t, doc.Slice(), 2)
+	assert.Equal(t, sliceof.Any{
+		map[string]any{vocab.PropertyID: "https://example.com/1"},
+		map[string]any{vocab.PropertyID: "https://example.com/2"},
+	}, doc.Slice())
 
 	docs := doc.SliceOfDocuments()
 	assert.Len(t, docs, 2)
 	assert.Equal(t, "https://example.com/1", docs[0].ID())
+	assert.Equal(t, "https://example.com/2", docs[1].ID())
 
 	ids := doc.SliceOfString()
 	assert.Equal(t, []string{"https://example.com/1", "https://example.com/2"}, []string(ids))
@@ -112,11 +123,11 @@ func TestDocument_Map_String(t *testing.T) {
 	doc := NewDocument("https://example.com/actor")
 	result := doc.Map()
 	// A bare string maps to its id; the stored value is a property.String, so
-	// compare via fmt rather than asserting the concrete wrapper type.
+	// compare via convert.String rather than asserting the concrete wrapper type.
 	assert.Equal(t, "https://example.com/actor", convert.String(result[vocab.PropertyID]))
 }
 
-// TestDocument_MapKeys returns all keys of a map document (order-independent).
+// TestDocument_MapKeys confirms MapKeys returns all keys of a map document (order-independent).
 func TestDocument_MapKeys(t *testing.T) {
 
 	doc := NewDocument(map[string]any{"a": 1, "b": 2, "c": 3})

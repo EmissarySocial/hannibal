@@ -28,7 +28,7 @@ func TestSlice(t *testing.T) {
 	assert.Equal(t, "", value.String())
 }
 
-// TestSlice_Map delegates to the head element's Map representation.
+// TestSlice_Map confirms Map delegates to the head element's Map representation.
 func TestSlice_Map(t *testing.T) {
 
 	value := Slice{
@@ -51,7 +51,7 @@ func TestSlice_Empty(t *testing.T) {
 	assert.True(t, value.IsNil())
 }
 
-// TestSlice_Get reads a property from the first element of the slice.
+// TestSlice_Get confirms Get reads a property from the first element of the slice.
 func TestSlice_Get(t *testing.T) {
 
 	value := Slice{
@@ -63,8 +63,8 @@ func TestSlice_Get(t *testing.T) {
 	assert.Equal(t, "Alice", value.Get(vocab.PropertyName).Raw())
 }
 
-// TestSlice_Set writes a property onto the first element, leaving the tail
-// untouched.
+// TestSlice_Set confirms Set writes a property onto the first element, leaving
+// the tail untouched.
 func TestSlice_Set(t *testing.T) {
 
 	value := Slice{
@@ -76,6 +76,7 @@ func TestSlice_Set(t *testing.T) {
 
 	assert.Equal(t, "Changed", result.Get(vocab.PropertyName).Raw())
 	assert.Equal(t, 2, result.Len())
+	assert.Equal(t, "Bob", result.Tail().Get(vocab.PropertyName).Raw())
 }
 
 // TestSlice_SetEmpty confirms setting a property on an empty slice produces a

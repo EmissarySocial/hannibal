@@ -7,6 +7,8 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+// TestNew confirms that DefaultContext and NewContext build the expected entries, and that
+// languages, extensions, and multiple entries marshal to the expected JSON-LD @context.
 func TestNew(t *testing.T) {
 
 	// Test default context data
@@ -66,7 +68,7 @@ func TestNew(t *testing.T) {
 		require.Nil(t, err2)
 	}
 
-	// Test safely adding an extension to an improperly initialized context
+	// Test adding an extension to an entry whose language was never set
 	{
 		c := NewContext()
 		c.Add("https://test.com").

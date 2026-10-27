@@ -84,8 +84,8 @@ func TestSignAndVerify_RSA_SHA512(t *testing.T) {
 	require.Nil(t, err)
 }
 
-// TestSignAndVerify_Emissary signs a captured Emissary signing string with the test key,
-// and reports any error from verifying it
+// TestSignAndVerify_Emissary confirms that a captured Emissary signing string, signed with
+// the test key, verifies against the matching public key
 func TestSignAndVerify_Emissary(t *testing.T) {
 
 	privateKey, publicKey := getTestKeys()
@@ -104,7 +104,7 @@ func TestSignAndVerify_Emissary(t *testing.T) {
 	signedSignature, err := makeSignedDigest(hashedSignature, crypto.SHA256, privateKey)
 	require.Nil(t, err)
 
-	derp.Report(verifyHashAndSignature(plaintextSignature, crypto.SHA256, publicKey, signedSignature))
+	require.NoError(t, verifyHashAndSignature(plaintextSignature, crypto.SHA256, publicKey, signedSignature))
 }
 
 // TestVerifyHashAndSignature_ReportsOnlyAtTrace pins the report gate to zerolog's GLOBAL level.

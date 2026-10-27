@@ -197,7 +197,7 @@ func unwrapWithin(t *testing.T, client testClient, url string) Document {
 }
 
 // TestDocument_ImageMetadata exercises the icon/image presence and dimension
-// helpers, plus the aspect-ratio calculation.
+// helpers.
 func TestDocument_ImageMetadata(t *testing.T) {
 
 	t.Run("has icon and image", func(t *testing.T) {
@@ -279,7 +279,7 @@ func TestDocument_FirstImageAttachment(t *testing.T) {
 }
 
 // TestDocument_IconImageHybrids confirms IconOrImage / ImageOrIcon prefer their
-// namesake property, then fall back through attachment to the other property.
+// namesake property, then fall back to the other property.
 func TestDocument_IconImageHybrids(t *testing.T) {
 
 	icon := map[string]any{vocab.PropertyURL: "https://example.com/icon.png"}
@@ -355,7 +355,7 @@ func TestDocument_SummaryWithTagLinks(t *testing.T) {
 }
 
 // TestDocument_PublicAddressing confirms IsPublic / NotPublic detect the
-// well-known Public namespace in any recipient field.
+// well-known Public namespace in the "to" field.
 func TestDocument_PublicAddressing(t *testing.T) {
 
 	t.Run("public in 'to'", func(t *testing.T) {

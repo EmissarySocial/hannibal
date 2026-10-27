@@ -20,7 +20,7 @@ func newDigestRequest(t *testing.T, body string) *http.Request {
 }
 
 // TestVerifyDigest_Reject_Tampered confirms that a digest not matching the body
-// is rejected immediately -- the "no digest shopping" rule.
+// is rejected.
 func TestVerifyDigest_Reject_Tampered(t *testing.T) {
 
 	request := newDigestRequest(t, `{"amount":"100"}`)
@@ -84,8 +84,7 @@ func TestVerifyDigest_UnknownAlgorithmSkipped(t *testing.T) {
 }
 
 // TestVerifyDigest_NoDigestHeader confirms that a request with no Digest header
-// passes (there is nothing to verify) -- the body integrity is then enforced by
-// the signature instead.
+// passes (there is nothing to verify).
 func TestVerifyDigest_NoDigestHeader(t *testing.T) {
 
 	request, err := http.NewRequest("GET", "https://example.com/inbox", nil)

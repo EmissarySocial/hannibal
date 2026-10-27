@@ -7,12 +7,11 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-// TestDocument_Introspection confirms each Is* predicate reports TRUE for a
-// document wrapping its own type and FALSE for the others. Each underlying value
-// is exercised through exactly one predicate that should match.
+// TestDocument_Introspection confirms each Is* predicate reports TRUE for a document wrapping its own
+// type. Each underlying value is exercised through exactly one predicate that should match.
 func TestDocument_Introspection(t *testing.T) {
 
-	// matches asserts that exactly the named predicate is true for this value.
+	// matches asserts that the named predicate is true for this value.
 	matches := func(name string, value any, predicate func(Document) bool) {
 		t.Run(name, func(t *testing.T) {
 			assert.True(t, predicate(NewDocument(value)))
@@ -30,7 +29,7 @@ func TestDocument_Introspection(t *testing.T) {
 }
 
 // TestDocument_NilNotNil confirms IsNil/NotNil/NotEmpty/IsEmpty agree about
-// emptiness for nil, empty, and populated documents.
+// emptiness for nil and populated documents.
 func TestDocument_NilNotNil(t *testing.T) {
 
 	nilDoc := NilDocument()

@@ -9,6 +9,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+// TestHTTPRequest pins how net/http writes, reads, and indexes a header that carries several values
 func TestHTTPRequest(t *testing.T) {
 
 	request, err := http.NewRequest("GET", "http://example.com/foo", nil)

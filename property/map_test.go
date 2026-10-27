@@ -30,7 +30,7 @@ func TestMap(t *testing.T) {
 	assert.Equal(t, map[string]any(value), value.Map())
 }
 
-// TestMap_Get returns the wrapped value for present keys and Nil for absent.
+// TestMap_Get confirms Get returns the wrapped value for present keys and Nil for absent.
 func TestMap_Get(t *testing.T) {
 
 	value := Map{vocab.PropertyName: "Alice"}
@@ -39,7 +39,7 @@ func TestMap_Get(t *testing.T) {
 	assert.Equal(t, Nil{}, value.Get(vocab.PropertyID))
 }
 
-// TestMap_Set mutates the map in place and returns it.
+// TestMap_Set confirms Set mutates the map in place and returns it.
 func TestMap_Set(t *testing.T) {
 
 	value := Map{}
@@ -50,7 +50,7 @@ func TestMap_Set(t *testing.T) {
 	assert.Equal(t, "Alice", value.Get(vocab.PropertyName).Raw())
 }
 
-// TestMap_String returns the id property rendered as a string.
+// TestMap_String confirms String returns the id property rendered as a string.
 func TestMap_String(t *testing.T) {
 
 	value := Map{vocab.PropertyID: "https://example.com/1"}
@@ -66,7 +66,7 @@ func TestMap_IsNil(t *testing.T) {
 	assert.False(t, Map{"x": 1}.IsNil())
 }
 
-// TestMap_MapKeys returns all keys (order-independent).
+// TestMap_MapKeys confirms MapKeys returns all keys (order-independent).
 func TestMap_MapKeys(t *testing.T) {
 
 	value := Map{"b": 2, "a": 1, "c": 3}

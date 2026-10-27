@@ -92,8 +92,7 @@ func TestRefreshKey_RepairsRotation(t *testing.T) {
 func TestRefreshKey_RepairsRotationOnSignedPost(t *testing.T) {
 
 	// The Digest is verified ONCE, before the signature is even parsed, so the second attempt never
-	// re-reads the body.  This test pins that arrangement: if the refresh ever moved above the digest
-	// check, this is the case that would start failing.
+	// re-reads the body.
 	privateKey, err := rsa.GenerateKey(rand.Reader, 2048)
 	require.Nil(t, err)
 
@@ -170,6 +169,7 @@ func TestRefreshKey_FailedRefreshReturnsOriginalError(t *testing.T) {
 	require.NotNil(t, err)
 	require.Equal(t, 1, refresh.calls)
 	require.NotContains(t, derp.Message(err), "Remote host unreachable")
+	require.Equal(t, "No valid signatures found", derp.Message(err), "the first attempt's error is returned unwrapped")
 }
 
 // TestRefreshKey_NilBehavesAsBefore confirms that the option is genuinely additive.

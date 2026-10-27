@@ -9,6 +9,8 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+// TestCountItems logs the item counts of live remote collections, failing only
+// when a load or a count returns an error.
 func TestCountItems(t *testing.T) {
 
 	do := func(url string) {

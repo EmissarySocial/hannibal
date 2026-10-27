@@ -8,6 +8,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+// TestEncodeDecodePEM confirms an RSA public key survives EncodePublicPEM and DecodePublicPEM unchanged
 func TestEncodeDecodePEM(t *testing.T) {
 
 	key, err := rsa.GenerateKey(rand.Reader, 2048)
@@ -44,6 +45,7 @@ func TestParseRSAKey2(t *testing.T) {
 	require.NotNil(t, key)
 }
 
+// TestParseRSAKey3 confirms DecodePublicPEM accepts a 512-bit PKCS#1 "RSA PUBLIC KEY"
 func TestParseRSAKey3(t *testing.T) {
 
 	cert := "-----BEGIN RSA PUBLIC KEY-----\nMEgCQQDbLVt+d4EGWdMOgG6lS2xvhP6kbb0OgdkG26jmqWfUCqzYhyuhoL3JgijV\nN+Y0Jbb4iEU2aQXMNHM+Rq1bfkLTAgMBAAE=\n-----END RSA PUBLIC KEY-----\n"
@@ -76,6 +78,7 @@ AIU+2GKjyT3iMuzZxxFxPFMCAwEAAQ==
 	require.NotNil(t, key)
 }
 
+// TestDecode_MastodonPEM confirms DecodePublicPEM accepts a PKIX "PUBLIC KEY" from a Mastodon instance
 func TestDecode_MastodonPEM(t *testing.T) {
 	pem := "-----BEGIN PUBLIC KEY-----\nMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEApIC6kVMMkk0cc4GCAQ+/\n5XAKz8KhSbSpsWFC1jVRH+AXDAH3O6Pw+r5xNUu+OEGUPnLXycxuPZapxTQPGw/w\nPUMk2QvEhi9WEECrdPG8y2dEZMcNvGhtOtyhIWHGBLfANcpeueW3Z8WBR2Eak5+Y\nkuy+oiS3CZ13JAxbY6AfNc6L1V1G1hSppoynBhxdk1V9XbSLGSPEcL0ZTKS2Jo9Y\nB/ipPTWWpD1jHvELTNEsgfcAgAmHsEIH7j9RhMy/YtsOczlymf+fqvcy5NJHzAaV\nFRomn/Eci/IYKGTc6/g3AzVQZ0aILEArgwiAUoumiWqco+ASVsjDY5by3Yxx3vsA\n+QIDAQAB\n-----END PUBLIC KEY-----\n"
 	key, err := DecodePublicPEM(pem)
@@ -83,6 +86,7 @@ func TestDecode_MastodonPEM(t *testing.T) {
 	require.NotNil(t, key)
 }
 
+// TestDecode_EmissaryPEM confirms DecodePublicPEM accepts a PKCS#1 "RSA PUBLIC KEY" like Emissary writes
 func TestDecode_EmissaryPEM(t *testing.T) {
 	pem := "-----BEGIN RSA PUBLIC KEY-----\nMIIBCgKCAQEAy1xxGJw8d+FouEHikqkmNo/X8/tPAMtZtzXXj03Uzr3Pxfpy4a0M\nhZwd3duWqhINPKWbDFgn9W2z6I+nIziBLD+YxHWqvahpsRqGkmu86CoOLKommbUL\njAIzyAMtPqBpOQJ8xJtq6Evz09avUku08iPrjP64wKNESyu5mDFvfpW31F6B7C0y\n+QC6vbhDanOnvV9QIxMDEbU87iY3nyyt8ZkSj5I2bHb80LQ0BEWN4WkOZB+wc0+f\nhQ9+pJobSSsyGJ21graTbkEKcr1LGo+Xe+rqPYT1IcDwpMTD7es1AiqbZwlIxNoh\n9wvJygZsqB4Iok8iatc+I1fGl6XiJcnxAQIDAQAB\n-----END RSA PUBLIC KEY-----\n"
 	key, err := DecodePublicPEM(pem)

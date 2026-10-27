@@ -38,7 +38,7 @@ func TestTime(t *testing.T) {
 // TestTime_IsNil confirms Time reports nil only for the zero time.
 func TestTime_IsNil(t *testing.T) {
 
-	// A nil Time must serialize to an empty string, not a Unix-epoch timestamp.
+	// A nil Time must serialize to an empty string, not a year-0001 timestamp.
 	assert.True(t, Time(time.Time{}).IsNil())
 	assert.Equal(t, "", Time(time.Time{}).String())
 	assert.False(t, Time(time.Now()).IsNil())
