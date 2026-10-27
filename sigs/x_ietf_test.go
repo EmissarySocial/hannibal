@@ -127,19 +127,6 @@ func testIETFRequest() *http.Request {
 	return result
 }
 
-// testIETFPublicPEM returns a PublicKeyFinder that always answers with the draft's sample public key
-func testIETFPublicPEM() PublicKeyFinder {
-	return func(_ string) (string, error) {
-		return removeTabs(
-			`-----BEGIN PUBLIC KEY-----
-			MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQDCFENGw33yGihy92pDjZQhl0C3
-			6rPJj+CvfSC8+q28hxA161QFNUd13wuCTUcq0Qd2qsBe/2hFyc2DCJJg0h1L78+6
-			Z4UMR7EOcpfdUE9Hf3m/hs+FUR45uBJeDK1HSFHD8bHKD6kv8FPGfJTotc+2xjJw
-			oYi+1hqp1fIekaxsyQIDAQAB
-			-----END PUBLIC KEY-----`), nil
-	}
-}
-
 // testIETFPrivateKey returns the draft's sample RSA private key
 func testIETFPrivateKey() crypto.PrivateKey {
 
@@ -163,4 +150,17 @@ func testIETFPrivateKey() crypto.PrivateKey {
 	privateKey := must(DecodePrivatePEM(privatePEM))
 
 	return privateKey
+}
+
+// testIETFPublicPEM returns a PublicKeyFinder that always answers with the draft's sample public key
+func testIETFPublicPEM() PublicKeyFinder {
+	return func(_ string) (string, error) {
+		return removeTabs(
+			`-----BEGIN PUBLIC KEY-----
+			MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQDCFENGw33yGihy92pDjZQhl0C3
+			6rPJj+CvfSC8+q28hxA161QFNUd13wuCTUcq0Qd2qsBe/2hFyc2DCJJg0h1L78+6
+			Z4UMR7EOcpfdUE9Hf3m/hs+FUR45uBJeDK1HSFHD8bHKD6kv8FPGfJTotc+2xjJw
+			oYi+1hqp1fIekaxsyQIDAQAB
+			-----END PUBLIC KEY-----`), nil
+	}
 }

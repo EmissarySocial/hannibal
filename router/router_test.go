@@ -15,27 +15,6 @@ type capture struct {
 	hit string
 }
 
-// handler returns a RouteHandler that records the given label into the capture
-// context when invoked.
-func handler(label string) RouteHandler[*capture] {
-	return func(context *capture, _ streams.Document) error {
-		context.hit = label
-		return nil
-	}
-}
-
-// activityDoc builds an in-memory activity document with the given activity type
-// and a single embedded object of the given object type.
-func activityDoc(activityType string, objectType string) streams.Document {
-	return streams.NewDocument(map[string]any{
-		vocab.PropertyType: activityType,
-		vocab.PropertyObject: map[string]any{
-			vocab.PropertyID:   "https://example.com/object",
-			vocab.PropertyType: objectType,
-		},
-	})
-}
-
 // TestRouter_New confirms a new router starts with an empty route table.
 func TestRouter_New(t *testing.T) {
 	router := New[*capture]()
@@ -160,4 +139,25 @@ func TestRouter_Handle_ImplicitCreate(t *testing.T) {
 
 	require.NoError(t, err)
 	assert.Equal(t, "implicit-create", context.hit, "a bare object must be routed as an implicit Create")
+}
+
+// handler returns a RouteHandler that records the given label into the capture
+// context when invoked.
+func handler(label string) RouteHandler[*capture] {
+	return func(context *capture, _ streams.Document) error {
+		context.hit = label
+		return nil
+	}
+}
+
+// activityDoc builds an in-memory activity document with the given activity type
+// and a single embedded object of the given object type.
+func activityDoc(activityType string, objectType string) streams.Document {
+	return streams.NewDocument(map[string]any{
+		vocab.PropertyType: activityType,
+		vocab.PropertyObject: map[string]any{
+			vocab.PropertyID:   "https://example.com/object",
+			vocab.PropertyType: objectType,
+		},
+	})
 }

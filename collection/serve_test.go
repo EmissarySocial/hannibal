@@ -16,83 +16,6 @@ import (
 )
 
 /******************************************
- * Test Helpers
- ******************************************/
-
-// newContext builds an Echo context plus its response recorder for a GET request
-// to the given target (which may include a query string).
-func newContext(target string) (echo.Context, *httptest.ResponseRecorder) {
-	e := echo.New()
-	request := httptest.NewRequest(http.MethodGet, target, nil)
-	recorder := httptest.NewRecorder()
-	return e.NewContext(request, recorder), recorder
-}
-
-// newContextWithAccept is like newContext but sets the Accept header, used to
-// exercise content-type negotiation in serveJSON.
-func newContextWithAccept(target string, accept string) (echo.Context, *httptest.ResponseRecorder) {
-	e := echo.New()
-	request := httptest.NewRequest(http.MethodGet, target, nil)
-	request.Header.Set("Accept", accept)
-	recorder := httptest.NewRecorder()
-	return e.NewContext(request, recorder), recorder
-}
-
-// counter returns a CounterFunc that always reports the given total.
-func counter(total int64) CounterFunc {
-	return func() (int64, error) { return total, nil }
-}
-
-// makeActivities builds n activity maps. If fullObjects is true, each carries an
-// extra field so it is rendered as a full object; otherwise each is id-only.
-func makeActivities(n int, fullObjects bool) []mapof.Any {
-	result := make([]mapof.Any, 0, n)
-	for i := 0; i < n; i++ {
-		activity := mapof.Any{vocab.PropertyID: "https://example.com/activity/" + itoa(i)}
-		if fullObjects {
-			activity[vocab.PropertyType] = vocab.ActivityTypeCreate
-		}
-		result = append(result, activity)
-	}
-	return result
-}
-
-// iterator returns an IteratorFunc that yields the given activities, ignoring the
-// startIndex (the storage layer is assumed to pre-filter).
-func iterator(activities []mapof.Any) IteratorFunc {
-	return func(_ string) (iter.Seq[mapof.Any], error) {
-		return func(yield func(mapof.Any) bool) {
-			for _, activity := range activities {
-				if !yield(activity) {
-					return
-				}
-			}
-		}, nil
-	}
-}
-
-// decodeBody parses the recorded JSON response body into a mapof.Any.
-func decodeBody(t *testing.T, recorder *httptest.ResponseRecorder) mapof.Any {
-	t.Helper()
-	result := mapof.NewAny()
-	require.NoError(t, json.Unmarshal(recorder.Body.Bytes(), &result))
-	return result
-}
-
-// itoa is a tiny int-to-string helper to avoid importing strconv in fixtures.
-func itoa(i int) string {
-	if i == 0 {
-		return "0"
-	}
-	digits := ""
-	for i > 0 {
-		digits = string(rune('0'+i%10)) + digits
-		i /= 10
-	}
-	return digits
-}
-
-/******************************************
  * serveOrderedCollection branches
  ******************************************/
 
@@ -355,4 +278,81 @@ func TestServe_FullObjectsRenderWhole(t *testing.T) {
 	first, ok := items[0].(map[string]any)
 	require.True(t, ok, "a multi-field activity should render as an object")
 	assert.Equal(t, vocab.ActivityTypeCreate, first[vocab.PropertyType])
+}
+
+/******************************************
+ * Test Helpers
+ ******************************************/
+
+// newContext builds an Echo context plus its response recorder for a GET request
+// to the given target (which may include a query string).
+func newContext(target string) (echo.Context, *httptest.ResponseRecorder) {
+	e := echo.New()
+	request := httptest.NewRequest(http.MethodGet, target, nil)
+	recorder := httptest.NewRecorder()
+	return e.NewContext(request, recorder), recorder
+}
+
+// counter returns a CounterFunc that always reports the given total.
+func counter(total int64) CounterFunc {
+	return func() (int64, error) { return total, nil }
+}
+
+// iterator returns an IteratorFunc that yields the given activities, ignoring the
+// startIndex (the storage layer is assumed to pre-filter).
+func iterator(activities []mapof.Any) IteratorFunc {
+	return func(_ string) (iter.Seq[mapof.Any], error) {
+		return func(yield func(mapof.Any) bool) {
+			for _, activity := range activities {
+				if !yield(activity) {
+					return
+				}
+			}
+		}, nil
+	}
+}
+
+// decodeBody parses the recorded JSON response body into a mapof.Any.
+func decodeBody(t *testing.T, recorder *httptest.ResponseRecorder) mapof.Any {
+	t.Helper()
+	result := mapof.NewAny()
+	require.NoError(t, json.Unmarshal(recorder.Body.Bytes(), &result))
+	return result
+}
+
+// makeActivities builds n activity maps. If fullObjects is true, each carries an
+// extra field so it is rendered as a full object; otherwise each is id-only.
+func makeActivities(n int, fullObjects bool) []mapof.Any {
+	result := make([]mapof.Any, 0, n)
+	for i := 0; i < n; i++ {
+		activity := mapof.Any{vocab.PropertyID: "https://example.com/activity/" + itoa(i)}
+		if fullObjects {
+			activity[vocab.PropertyType] = vocab.ActivityTypeCreate
+		}
+		result = append(result, activity)
+	}
+	return result
+}
+
+// itoa is a tiny int-to-string helper to avoid importing strconv in fixtures.
+func itoa(i int) string {
+	if i == 0 {
+		return "0"
+	}
+	digits := ""
+	for i > 0 {
+		digits = string(rune('0'+i%10)) + digits
+		i /= 10
+	}
+	return digits
+}
+
+// newContextWithAccept is like newContext but sets the Accept header, used to
+// exercise content-type negotiation in serveJSON.
+func newContextWithAccept(target string, accept string) (echo.Context, *httptest.ResponseRecorder) {
+	e := echo.New()
+	request := httptest.NewRequest(http.MethodGet, target, nil)
+	request.Header.Set("Accept", accept)
+	recorder := httptest.NewRecorder()
+	return e.NewContext(request, recorder), recorder
 }

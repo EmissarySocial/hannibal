@@ -9,35 +9,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// addressedDoc builds a document of the given type, addressed to a remote
-// recipient (so the builder's Send fans out to the inbox recorder).
-func addressedDoc(id string, objectType string) streams.Document {
-	return streams.NewDocument(map[string]any{
-		vocab.PropertyID:   id,
-		vocab.PropertyType: objectType,
-		vocab.PropertyTo:   "https://remote.example.com/users/bob",
-	})
-}
-
-// assertDelivered runs the builder, then asserts exactly one activity was
-// delivered with the expected type and the correct actor URL. Each builder is a
-// near-identical message constructor; this guards every one against the kind of
-// copy/paste slip that broke SendUndo.
-func assertDelivered(t *testing.T, build func(actor *Actor, recorder *inboxRecorder), expectedType string) {
-	t.Helper()
-
-	recorder := newInboxRecorder(t)
-	actor := newSendingActor(t, recorder)
-
-	build(&actor, recorder)
-
-	require.Equal(t, 1, recorder.count(), "%s must be delivered", expectedType)
-	body := recorder.lastBody()
-	assert.Equal(t, expectedType, body.GetString(vocab.PropertyType))
-	assert.Equal(t, "https://example.com/users/alice", body.GetString(vocab.PropertyActor),
-		"the actor field must be the actor URL string")
-}
-
 // TestSendBuilders exercises every remaining SendXxx builder, confirming each
 // produces a deliverable activity of the correct type with the correct actor.
 func TestSendBuilders(t *testing.T) {
@@ -100,4 +71,33 @@ func TestSendBuilders(t *testing.T) {
 			a.SendAccept("https://example.com/activities/accept-1", followActivity)
 		}, vocab.ActivityTypeAccept)
 	})
+}
+
+// addressedDoc builds a document of the given type, addressed to a remote
+// recipient (so the builder's Send fans out to the inbox recorder).
+func addressedDoc(id string, objectType string) streams.Document {
+	return streams.NewDocument(map[string]any{
+		vocab.PropertyID:   id,
+		vocab.PropertyType: objectType,
+		vocab.PropertyTo:   "https://remote.example.com/users/bob",
+	})
+}
+
+// assertDelivered runs the builder, then asserts exactly one activity was
+// delivered with the expected type and the correct actor URL. Each builder is a
+// near-identical message constructor; this guards every one against the kind of
+// copy/paste slip that broke SendUndo.
+func assertDelivered(t *testing.T, build func(actor *Actor, recorder *inboxRecorder), expectedType string) {
+	t.Helper()
+
+	recorder := newInboxRecorder(t)
+	actor := newSendingActor(t, recorder)
+
+	build(&actor, recorder)
+
+	require.Equal(t, 1, recorder.count(), "%s must be delivered", expectedType)
+	body := recorder.lastBody()
+	assert.Equal(t, expectedType, body.GetString(vocab.PropertyType))
+	assert.Equal(t, "https://example.com/users/alice", body.GetString(vocab.PropertyActor),
+		"the actor field must be the actor URL string")
 }

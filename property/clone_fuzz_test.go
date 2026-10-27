@@ -160,12 +160,6 @@ func equivalent(original any, clone any) bool {
 	return reflect.DeepEqual(original, clone)
 }
 
-// typeIsPreservedOrNormalized allows a cloned container to keep its original type, or to have
-// been normalized to the plain container type by the reflection fallback.
-func typeIsPreservedOrNormalized(originalType reflect.Type, cloneType reflect.Type, plainType reflect.Type) bool {
-	return (cloneType == originalType) || (cloneType == plainType)
-}
-
 // assertNoSharedContainers walks two structurally identical trees in parallel, failing if any
 // container in one is the same underlying object as its counterpart in the other.
 func assertNoSharedContainers(t *testing.T, original any, clone any, path string) {
@@ -214,6 +208,12 @@ func assertNoSharedContainers(t *testing.T, original any, clone any, path string
 	}
 }
 
+// typeIsPreservedOrNormalized allows a cloned container to keep its original type, or to have
+// been normalized to the plain container type by the reflection fallback.
+func typeIsPreservedOrNormalized(originalType reflect.Type, cloneType reflect.Type, plainType reflect.Type) bool {
+	return (cloneType == originalType) || (cloneType == plainType)
+}
+
 /******************************************
  * Structure generator
  ******************************************/
@@ -225,13 +225,6 @@ type structureGenerator struct {
 	seed     []byte
 	cursor   int
 	maxDepth int
-}
-
-// next returns the next seed byte, cycling when the seed runs out so generation always terminates.
-func (generator *structureGenerator) next() byte {
-	value := generator.seed[generator.cursor%len(generator.seed)]
-	generator.cursor++
-	return value
 }
 
 // buildMap creates a map with a seed-determined number of entries.
@@ -247,17 +240,11 @@ func (generator *structureGenerator) buildMap(depth int) map[string]any {
 	return result
 }
 
-// buildSlice creates a slice with a seed-determined number of elements.
-func (generator *structureGenerator) buildSlice(depth int) []any {
-
-	count := int(generator.next() % 4)
-	result := make([]any, 0, count)
-
-	for range count {
-		result = append(result, generator.buildValue(depth+1))
-	}
-
-	return result
+// next returns the next seed byte, cycling when the seed runs out so generation always terminates.
+func (generator *structureGenerator) next() byte {
+	value := generator.seed[generator.cursor%len(generator.seed)]
+	generator.cursor++
+	return value
 }
 
 // buildValue creates one value, choosing its type from the next seed byte. Past maxDepth it emits
@@ -333,4 +320,17 @@ func (generator *structureGenerator) buildScalar(choice byte) any {
 	default:
 		return Int64(int64(choice))
 	}
+}
+
+// buildSlice creates a slice with a seed-determined number of elements.
+func (generator *structureGenerator) buildSlice(depth int) []any {
+
+	count := int(generator.next() % 4)
+	result := make([]any, 0, count)
+
+	for range count {
+		result = append(result, generator.buildValue(depth+1))
+	}
+
+	return result
 }

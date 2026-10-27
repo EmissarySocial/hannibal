@@ -27,19 +27,6 @@ func (client mapClient) Load(uri string, _ ...any) (streams.Document, error) {
 func (client mapClient) Save(streams.Document) error { return nil }
 func (client mapClient) Delete(_ string) error       { return nil }
 
-// inlineCollection builds a single-page OrderedCollection with the given item IDs
-// inline (no remote paging required).
-func inlineCollection(itemIDs ...string) streams.Document {
-	items := make([]any, 0, len(itemIDs))
-	for _, id := range itemIDs {
-		items = append(items, map[string]any{vocab.PropertyID: id})
-	}
-	return streams.NewDocument(map[string]any{
-		vocab.PropertyType:  vocab.CoreTypeOrderedCollection,
-		vocab.PropertyItems: items,
-	})
-}
-
 // TestRangePages_SinglePage confirms a single inline collection yields exactly
 // one page (itself), with no infinite looping.
 func TestRangePages_SinglePage(t *testing.T) {
@@ -161,36 +148,6 @@ func TestRangeDocuments_EarlyStop(t *testing.T) {
 	assert.Equal(t, []string{"https://example.com/1", "https://example.com/2"}, got)
 }
 
-// cyclicCollection builds a collection whose "next" chain is a cycle of two
-// NON-empty pages -- the shape the empty-page check cannot catch.
-func cyclicCollection() streams.Document {
-
-	const pageA = "https://example.com/replies?page=a"
-	const pageB = "https://example.com/replies?page=b"
-
-	// Two non-empty pages that point at each other forever
-	client := mapClient{documents: map[string]map[string]any{
-		pageA: {
-			vocab.PropertyID:    pageA,
-			vocab.PropertyType:  vocab.CoreTypeCollectionPage,
-			vocab.PropertyNext:  pageB,
-			vocab.PropertyItems: []any{map[string]any{vocab.PropertyID: "https://example.com/reply/1"}},
-		},
-		pageB: {
-			vocab.PropertyID:    pageB,
-			vocab.PropertyType:  vocab.CoreTypeCollectionPage,
-			vocab.PropertyNext:  pageA,
-			vocab.PropertyItems: []any{map[string]any{vocab.PropertyID: "https://example.com/reply/2"}},
-		},
-	}}
-
-	return streams.NewDocument(map[string]any{
-		vocab.PropertyID:    "https://example.com/replies",
-		vocab.PropertyType:  vocab.CoreTypeCollection,
-		vocab.PropertyFirst: pageA,
-	}, streams.WithClient(client))
-}
-
 // TestRangePages_NextCycle confirms the default page cap terminates a collection
 // whose "next" chain is a cycle of NON-empty pages.  Without the cap this test
 // never returns.
@@ -270,4 +227,47 @@ func TestRangeDocuments_DefaultMaxDocuments(t *testing.T) {
 	}
 
 	assert.Equal(t, defaultMaxDocuments, documents)
+}
+
+// inlineCollection builds a single-page OrderedCollection with the given item IDs
+// inline (no remote paging required).
+func inlineCollection(itemIDs ...string) streams.Document {
+	items := make([]any, 0, len(itemIDs))
+	for _, id := range itemIDs {
+		items = append(items, map[string]any{vocab.PropertyID: id})
+	}
+	return streams.NewDocument(map[string]any{
+		vocab.PropertyType:  vocab.CoreTypeOrderedCollection,
+		vocab.PropertyItems: items,
+	})
+}
+
+// cyclicCollection builds a collection whose "next" chain is a cycle of two
+// NON-empty pages -- the shape the empty-page check cannot catch.
+func cyclicCollection() streams.Document {
+
+	const pageA = "https://example.com/replies?page=a"
+	const pageB = "https://example.com/replies?page=b"
+
+	// Two non-empty pages that point at each other forever
+	client := mapClient{documents: map[string]map[string]any{
+		pageA: {
+			vocab.PropertyID:    pageA,
+			vocab.PropertyType:  vocab.CoreTypeCollectionPage,
+			vocab.PropertyNext:  pageB,
+			vocab.PropertyItems: []any{map[string]any{vocab.PropertyID: "https://example.com/reply/1"}},
+		},
+		pageB: {
+			vocab.PropertyID:    pageB,
+			vocab.PropertyType:  vocab.CoreTypeCollectionPage,
+			vocab.PropertyNext:  pageA,
+			vocab.PropertyItems: []any{map[string]any{vocab.PropertyID: "https://example.com/reply/2"}},
+		},
+	}}
+
+	return streams.NewDocument(map[string]any{
+		vocab.PropertyID:    "https://example.com/replies",
+		vocab.PropertyType:  vocab.CoreTypeCollection,
+		vocab.PropertyFirst: pageA,
+	}, streams.WithClient(client))
 }

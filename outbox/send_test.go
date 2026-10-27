@@ -39,60 +39,6 @@ func (c mockClient) Load(uri string, _ ...any) (streams.Document, error) {
 	}), nil
 }
 
-// inboxRecorder is an httptest server that captures the last POSTed body.
-type inboxRecorder struct {
-	server *httptest.Server
-	mu     sync.Mutex
-	bodies []mapof.Any
-	hits   int
-}
-
-func newInboxRecorder(t *testing.T) *inboxRecorder {
-	t.Helper()
-	recorder := &inboxRecorder{}
-	recorder.server = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		body, _ := io.ReadAll(r.Body)
-		parsed := mapof.NewAny()
-		_ = json.Unmarshal(body, &parsed)
-
-		recorder.mu.Lock()
-		recorder.bodies = append(recorder.bodies, parsed)
-		recorder.hits++
-		recorder.mu.Unlock()
-
-		w.WriteHeader(http.StatusOK)
-	}))
-	t.Cleanup(recorder.server.Close)
-	return recorder
-}
-
-func (r *inboxRecorder) count() int {
-	r.mu.Lock()
-	defer r.mu.Unlock()
-	return r.hits
-}
-
-func (r *inboxRecorder) lastBody() mapof.Any {
-	r.mu.Lock()
-	defer r.mu.Unlock()
-	if len(r.bodies) == 0 {
-		return mapof.NewAny()
-	}
-	return r.bodies[len(r.bodies)-1]
-}
-
-// newSendingActor returns an Actor wired to deliver into the given recorder.
-func newSendingActor(t *testing.T, recorder *inboxRecorder) Actor {
-	t.Helper()
-	privateKey, err := rsa.GenerateKey(rand.Reader, 2048)
-	require.NoError(t, err)
-	return NewActor("https://example.com/users/alice", privateKey,
-		WithClient(mockClient{inboxURL: recorder.server.URL}),
-		// These tests POST to loopback httptest servers that remote's SSRF guard
-		// would otherwise block.
-		WithAllowPrivateIPs(true))
-}
-
 /******************************************
  * Send filtering (offline -- no SendOne)
  ******************************************/
@@ -227,4 +173,62 @@ func TestSignRequest(t *testing.T) {
 
 	assert.True(t, hasSignature, "outbound request must be signed")
 	assert.True(t, hasDigest, "outbound request must carry a body digest")
+}
+
+/******************************************
+ * Test Helpers
+ ******************************************/
+
+// inboxRecorder is an httptest server that captures the last POSTed body.
+type inboxRecorder struct {
+	server *httptest.Server
+	mu     sync.Mutex
+	bodies []mapof.Any
+	hits   int
+}
+
+func newInboxRecorder(t *testing.T) *inboxRecorder {
+	t.Helper()
+	recorder := &inboxRecorder{}
+	recorder.server = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		body, _ := io.ReadAll(r.Body)
+		parsed := mapof.NewAny()
+		_ = json.Unmarshal(body, &parsed)
+
+		recorder.mu.Lock()
+		recorder.bodies = append(recorder.bodies, parsed)
+		recorder.hits++
+		recorder.mu.Unlock()
+
+		w.WriteHeader(http.StatusOK)
+	}))
+	t.Cleanup(recorder.server.Close)
+	return recorder
+}
+
+// newSendingActor returns an Actor wired to deliver into the given recorder.
+func newSendingActor(t *testing.T, recorder *inboxRecorder) Actor {
+	t.Helper()
+	privateKey, err := rsa.GenerateKey(rand.Reader, 2048)
+	require.NoError(t, err)
+	return NewActor("https://example.com/users/alice", privateKey,
+		WithClient(mockClient{inboxURL: recorder.server.URL}),
+		// These tests POST to loopback httptest servers that remote's SSRF guard
+		// would otherwise block.
+		WithAllowPrivateIPs(true))
+}
+
+func (r *inboxRecorder) count() int {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	return r.hits
+}
+
+func (r *inboxRecorder) lastBody() mapof.Any {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	if len(r.bodies) == 0 {
+		return mapof.NewAny()
+	}
+	return r.bodies[len(r.bodies)-1]
 }

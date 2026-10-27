@@ -23,13 +23,6 @@ func (s stubValidator) Validate(_ *http.Request, _ *streams.Document) validator.
 	return s.result
 }
 
-// newActivityRequest builds a POST request whose body is the given JSON activity.
-func newActivityRequest(body string) *http.Request {
-	request := httptest.NewRequest(http.MethodPost, "https://example.com/inbox", strings.NewReader(body))
-	request.Header.Set("Content-Type", vocab.ContentTypeActivityPub)
-	return request
-}
-
 const followActivityJSON = `{
 	"@context": "https://www.w3.org/ns/activitystreams",
 	"id": "https://example.com/activities/1",
@@ -183,11 +176,6 @@ func TestReceiveAndHandle_HandlerError(t *testing.T) {
 	require.Error(t, err, "a handler error must propagate out of ReceiveAndHandle")
 }
 
-// stubError is a minimal error type for tests.
-type stubError string
-
-func (e stubError) Error() string { return string(e) }
-
 // TestReceiveAndHandle_ValidationError confirms a validation failure aborts
 // before any handler runs.
 func TestReceiveAndHandle_ValidationError(t *testing.T) {
@@ -205,3 +193,19 @@ func TestReceiveAndHandle_ValidationError(t *testing.T) {
 	require.Error(t, err)
 	assert.Equal(t, "", context.hit, "no handler should run when validation fails")
 }
+
+/******************************************
+ * Test Helpers
+ ******************************************/
+
+// newActivityRequest builds a POST request whose body is the given JSON activity.
+func newActivityRequest(body string) *http.Request {
+	request := httptest.NewRequest(http.MethodPost, "https://example.com/inbox", strings.NewReader(body))
+	request.Header.Set("Content-Type", vocab.ContentTypeActivityPub)
+	return request
+}
+
+// stubError is a minimal error type for tests.
+type stubError string
+
+func (e stubError) Error() string { return string(e) }
