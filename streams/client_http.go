@@ -34,9 +34,11 @@ func (client DefaultClient) Load(url string, options ...any) (Document, error) {
 	// append would write per-call options into the backing array this client shares.
 	remoteOptions := slices.Concat(client.options, remote.Options(options...))
 
-	// Try to load-and-parse the value from the remote server
+	// Try to load-and-parse the value from the remote server. Options run when the request is
+	// sent, after MaxResponseSize, so a caller can still raise the cap for a larger document.
 	transaction := remote.Get(url).
 		Accept(vocab.ContentTypeActivityPub).
+		MaxResponseSize(MaxResponseSize).
 		With(remoteOptions...).
 		Result(&result)
 

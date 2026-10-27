@@ -3,6 +3,7 @@ package streams
 import (
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"github.com/benpate/hannibal/vocab"
@@ -56,6 +57,65 @@ func TestDefaultClient_Load_Error(t *testing.T) {
 	_, err := client.Load(server.URL)
 
 	require.Error(t, err)
+}
+
+// paddedNote returns a JSON Note whose encoding is the requested number of bytes
+func paddedNote(size int) string {
+	const prefix = `{"id":"urn:padded","type":"Note","content":"`
+	const suffix = `"}`
+	return prefix + strings.Repeat("a", size-len(prefix)-len(suffix)) + suffix
+}
+
+// servePaddedNote starts a server that answers every request with a Note of the requested size
+func servePaddedNote(t *testing.T, size int) *httptest.Server {
+
+	t.Helper()
+
+	body := paddedNote(size)
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", vocab.ContentTypeActivityPub)
+		_, _ = w.Write([]byte(body))
+	}))
+	t.Cleanup(server.Close)
+
+	return server
+}
+
+// TestDefaultClient_Load_AtMaxResponseSize confirms a document of exactly MaxResponseSize bytes is read
+func TestDefaultClient_Load_AtMaxResponseSize(t *testing.T) {
+
+	server := servePaddedNote(t, MaxResponseSize)
+	document, err := NewDefaultClient(allowPrivateIPs()).Load(server.URL)
+
+	require.NoError(t, err)
+	assert.Equal(t, "urn:padded", document.ID())
+}
+
+// TestDefaultClient_Load_OverMaxResponseSize confirms a document one byte over MaxResponseSize is refused
+func TestDefaultClient_Load_OverMaxResponseSize(t *testing.T) {
+
+	server := servePaddedNote(t, MaxResponseSize+1)
+	_, err := NewDefaultClient(allowPrivateIPs()).Load(server.URL)
+
+	require.Error(t, err)
+}
+
+// TestDefaultClient_Load_RaisedMaxResponseSize confirms a caller's option can raise the cap for one load
+func TestDefaultClient_Load_RaisedMaxResponseSize(t *testing.T) {
+
+	server := servePaddedNote(t, MaxResponseSize+1)
+
+	raise := remote.Option{
+		BeforeRequest: func(txn *remote.Transaction) error {
+			txn.MaxResponseSize(2 * MaxResponseSize)
+			return nil
+		},
+	}
+
+	document, err := NewDefaultClient(allowPrivateIPs()).Load(server.URL, raise)
+
+	require.NoError(t, err)
+	assert.Equal(t, "urn:padded", document.ID())
 }
 
 // TestDefaultClient_SaveDeleteNoop confirms Save and Delete are no-ops that
