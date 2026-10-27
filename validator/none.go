@@ -6,18 +6,16 @@ import (
 	"github.com/benpate/hannibal/streams"
 )
 
-// None is a Validator that always returns VALID because
-// the request has already been validated in some external way.
-// For example, the route may require a Cookie or API Key for access
+// None is a Validator that accepts every activity without checking it, for routes that
+// authenticate requests some other way, such as with a cookie or an API key
 type None struct{}
 
-// NewNone returns a Validator that performs no validation and always returns ResultUnknown.
+// NewNone returns a Validator that accepts every activity without checking it.
 func NewNone() None {
 	return None{}
 }
 
-// Validate uses the hannibal/sigs library to verify that the HTTP
-// request is signed with a valid key.
+// Validate implements the Validator interface, and always returns ResultValid.
 func (validator None) Validate(_ *http.Request, _ *streams.Document) Result {
 	return ResultValid
 }
