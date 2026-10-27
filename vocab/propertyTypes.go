@@ -60,6 +60,12 @@ const PropertyClosed = "closed"
 // https://www.w3.org/TR/activitystreams-vocabulary/#dfn-content
 const PropertyContent = "content"
 
+// DELTA: Emissary I18N §1.8 (ActivityPub): new constant for language maps.
+
+// PropertyContentMap is the "contentMap" property: the content in each language, keyed by BCP 47 tag.
+// https://www.w3.org/TR/activitystreams-vocabulary/#dfn-content
+const PropertyContentMap = "contentMap"
+
 // PropertyContext is the "context" property.
 // https://www.w3.org/TR/activitystreams-vocabulary/#dfn-context
 // IMPORTANT: This is a distinct property that identifies the
@@ -180,6 +186,12 @@ const PropertyMLSCiphersuite = "ciphersuite"
 // https://www.w3.org/TR/activitystreams-vocabulary/#dfn-name
 const PropertyName = "name"
 
+// DELTA: Emissary I18N §1.8 (ActivityPub): new constant for language maps.
+
+// PropertyNameMap is the "nameMap" property: the name in each language, keyed by BCP 47 tag.
+// https://www.w3.org/TR/activitystreams-vocabulary/#dfn-name
+const PropertyNameMap = "nameMap"
+
 // PropertyNext is the "next" property.
 // https://www.w3.org/TR/activitystreams-vocabulary/#dfn-next
 const PropertyNext = "next"
@@ -265,6 +277,12 @@ const PropertySubject = "subject"
 // PropertySummary is the "summary" property.
 // https://www.w3.org/TR/activitystreams-vocabulary/#dfn-summary
 const PropertySummary = "summary"
+
+// DELTA: Emissary I18N §1.8 (ActivityPub): new constant for language maps.
+
+// PropertySummaryMap is the "summaryMap" property: the summary in each language, keyed by BCP 47 tag.
+// https://www.w3.org/TR/activitystreams-vocabulary/#dfn-summary
+const PropertySummaryMap = "summaryMap"
 
 // PropertyTag is the "tag" property.
 // https://www.w3.org/TR/activitystreams-vocabulary/#dfn-tag
