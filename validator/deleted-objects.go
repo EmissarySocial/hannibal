@@ -36,9 +36,10 @@ func (v DeletedObject) Validate(request *http.Request, activity *streams.Documen
 		return ResultInvalid
 	}
 
-	// Try to retrieve the original document
+	// Try to retrieve the original document, reading no more than any other ActivityStreams client
 	txn := remote.Get(objectID).
-		Header("Accept", "application/activity+json")
+		Header("Accept", "application/activity+json").
+		MaxResponseSize(streams.MaxResponseSize)
 
 	if err := txn.Send(); err != nil {
 

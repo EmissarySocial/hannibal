@@ -95,6 +95,10 @@ A collection's `next` chain and `items` arrays are remote-controlled data, so th
 
 Both delivery paths inherit `remote`'s default refusal to connect to private/loopback addresses. The opt-outs are per-instance functional options — `outbox.WithAllowPrivateIPs(bool)` on the Actor and `sender.AllowPrivateIPs(bool)` on the Sender — and default FALSE. Do not reintroduce a package-level flag; tests that deliver to `httptest` loopback servers pass the option instead. The `DeletedObject` validator's outbound GET (to a URL taken from an untrusted inbound activity) deliberately keeps the guard active.
 
+## Every ActivityStreams read is capped at `streams.MaxResponseSize`
+
+`remote` reads up to 1 GB of a response by default, so one untrusted server can spend that much memory on a single request. hannibal's two readers, `DefaultClient.Load` and the `DeletedObject` validator, cap the body at `streams.MaxResponseSize`, 1 MB. That is Mastodon's own fetch limit (`body_with_limit` in Mastodon's `app/lib/request.rb`), so no document Mastodon can federate is refused. The cap counts bytes rather than checking a document type, because the type is unknown until the body has been read and parsed. A caller's `remote.Option` runs at `Send`, after the cap is set, so a caller that knows a document is larger can raise it. sherlock's `activitypub.Client` reads the same constant, and any new `remote.Get` of an ActivityStreams document here must set it as well.
+
 ## outbox and sender are two outbound paths with different semantics
 
 - **`outbox.Actor` delivers inline and synchronously.** `Send` filters out empty, `as:Public`, and self recipients, and swallows per-recipient failures via `derp.Report` (fire-and-forget). `SendOne` bypasses those filters — an external delivery loop built directly on `SendOne` must re-implement them or it will attempt deliveries to the Public URI.
