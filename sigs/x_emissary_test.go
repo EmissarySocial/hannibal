@@ -25,7 +25,7 @@ func Test_Emissary(t *testing.T) {
 
 		{"@context":"application/activity+json","actor":"https://emdev.ddns.net/@64d68054a4bf39a519f27c67","id":"https://emdev.ddns.net/@64d68054a4bf39a519f27c67/pub/following/64fdf0c1a835dc65840d6ffb","object":"https://activitypub.academy/users/angusius_dukernen","to":"https://activitypub.academy/users/angusius_dukernen/inbox","type":"Follow"}`)
 
-	keyFinder := func(keyID string) (string, error) {
+	keyFinder := func(_ string) (string, error) {
 		return "-----BEGIN RSA PUBLIC KEY-----\nMIIBCgKCAQEAusAu2SkpV2zpD4Yhzwc4fV2RDMNLoTQp+gS2w5xUaLHwyPJckCZi\n5l4Aj9OvebwGXKicAUund8vMiRFeTeOlV6+UUK8/kV0WWbO2cWlvvqcOyBm4VKxz\nigHKGVD0HM2QmSAf4XyXRLuCbJjawUm36xZgGRgkG/YDFD+0YqQWVmjpwVSjiXc8\nx0GqV9LottkNeQf8YMgNEp8sW0fY7h2RmkdILNqJ7rX3UjE6MBXg+rlJqAGy/Zge\nuGfQIAe+bA53onjJNRonSLKpeYMSGKAKWONfHMnWScqBy7b79OOKLGIzh9v/3hk7\nEvKGydvXckxu9KW2u/0wFV7NVLbS5XEo0wIDAQAB\n-----END RSA PUBLIC KEY-----\n", nil
 	}
 
@@ -66,7 +66,7 @@ func Test_Emissary_FailedSignature_1(t *testing.T) {
 		{"@context":"https://www.w3.org/ns/activitystreams","actor":"http://127.0.0.1/@65aff71e3de7b36dd13a2a59","object":{"actor":"http://127.0.0.1/@65aff71e3de7b36dd13a2a59","attachment":[],"attributedTo":"http://127.0.0.1/@65aff71e3de7b36dd13a2a59","context":"http://127.0.0.1/65db800832c5ad74da313f9f","id":"http://127.0.0.1/65db800832c5ad74da313f9f","name":"First Task!","published":"2024-02-25T17:59:36Z","to":["https://www.w3.org/ns/activitystreams#Public"],"type":"Note","url":"http://127.0.0.1/65db800832c5ad74da313f9f"},"published":"Sun, 25 Feb 2024 20:58:55 GMT","to":["https://www.w3.org/ns/activitystreams#Public"],"type":"Update"}
 		`)
 
-	keyFinder := func(keyID string) (string, error) {
+	keyFinder := func(_ string) (string, error) {
 		return "-----BEGIN RSA PUBLIC KEY-----\nMIIBCgKCAQEAwxZUnNE5IuP3g2xgDhXTWhhpIscBPJHMHgRRR6IxLy4NW+Ll4Q95\nnJkjXiQsJXv1617FJw1aL+jKAkw++Rp0yawFG+RLomBP6tLL9vhfYm3JQ2BBbtdb\nbmaY/b9l03peaqCLFNsl0ew40avvXxHEXmBB39yZhlnE0vCUzLNxQfQoDDlYyBI+\nfeVE4bIlkQzz5aMFtpnM3MQYhlcOnRkZpeibDIZ26H6ZHhuN6mr55g4HbZ5e7lCj\nvt+w251ohmePz7fwamkvi13r5W6xaY038/JkztmZL2Ncf99E//7A/1COXtjELE00\nrt8/JuRP22moIn7a3PFgI0K7GOETuGf/bwIDAQAB\n-----END RSA PUBLIC KEY-----\n", nil
 	}
 
@@ -95,7 +95,7 @@ func Test_Emissary_FailedSignature_2(t *testing.T) {
 		
 		{"@context":"https://www.w3.org/ns/activitystreams","actor":"http://127.0.0.1/@65aff71e3de7b36dd13a2a59","object":{"actor":"http://127.0.0.1/@65aff71e3de7b36dd13a2a59","attachment":[],"attributedTo":"http://127.0.0.1/@65aff71e3de7b36dd13a2a59","context":"http://127.0.0.1/65dbcdcf549a6a4c0dbd1d5a","id":"http://127.0.0.1/65dbcdcf549a6a4c0dbd1d5a","name":"A new task to reject","published":"2024-02-25T23:31:27Z","to":["https://www.w3.org/ns/activitystreams#Public"],"type":"Note","url":"http://127.0.0.1/65dbcdcf549a6a4c0dbd1d5a"},"published":"Sun, 25 Feb 2024 23:31:27 GMT","to":["https://www.w3.org/ns/activitystreams#Public"],"type":"Create"}`)
 
-	keyFinder := func(keyID string) (string, error) {
+	keyFinder := func(_ string) (string, error) {
 		return "-----BEGIN RSA PUBLIC KEY-----\nMIIBCgKCAQEAwxZUnNE5IuP3g2xgDhXTWhhpIscBPJHMHgRRR6IxLy4NW+Ll4Q95\nnJkjXiQsJXv1617FJw1aL+jKAkw++Rp0yawFG+RLomBP6tLL9vhfYm3JQ2BBbtdb\nbmaY/b9l03peaqCLFNsl0ew40avvXxHEXmBB39yZhlnE0vCUzLNxQfQoDDlYyBI+\nfeVE4bIlkQzz5aMFtpnM3MQYhlcOnRkZpeibDIZ26H6ZHhuN6mr55g4HbZ5e7lCj\nvt+w251ohmePz7fwamkvi13r5W6xaY038/JkztmZL2Ncf99E//7A/1COXtjELE00\nrt8/JuRP22moIn7a3PFgI0K7GOETuGf/bwIDAQAB\n-----END RSA PUBLIC KEY-----\n", nil
 	}
 

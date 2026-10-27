@@ -18,15 +18,15 @@ type mockClient struct {
 
 func (client mockClient) SetRootClient(streams.Client) {}
 
-func (client mockClient) Load(uri string, options ...any) (streams.Document, error) {
+func (client mockClient) Load(uri string, _ ...any) (streams.Document, error) {
 	if value, ok := client.data[uri]; ok {
 		return streams.NewDocument(value, streams.WithClient(client)), nil
 	}
 	return streams.NilDocument(), derp.NotFound("validator.mockClient.Load", "Unknown URI", uri)
 }
 
-func (client mockClient) Save(document streams.Document) error { return nil }
-func (client mockClient) Delete(documentID string) error       { return nil }
+func (client mockClient) Save(_ streams.Document) error { return nil }
+func (client mockClient) Delete(_ string) error         { return nil }
 
 // TestHTTPLookup_NonCreateUpdate confirms the validator abstains (Unknown) for
 // activity types other than Create and Update.

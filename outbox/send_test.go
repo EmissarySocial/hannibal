@@ -29,7 +29,7 @@ func (c mockClient) SetRootClient(streams.Client) {}
 func (c mockClient) Save(streams.Document) error  { return nil }
 func (c mockClient) Delete(string) error          { return nil }
 
-func (c mockClient) Load(uri string, options ...any) (streams.Document, error) {
+func (c mockClient) Load(uri string, _ ...any) (streams.Document, error) {
 	return streams.NewDocument(map[string]any{
 		vocab.PropertyID:   uri,
 		vocab.PropertyType: vocab.ActorTypePerson,

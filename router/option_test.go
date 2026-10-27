@@ -41,7 +41,7 @@ func TestWithPublicKeyFinder(t *testing.T) {
 
 	defaultCount := len(NewReceiveConfig().Validators)
 
-	keyFinder := func(keyID string) (string, error) { return "", nil }
+	keyFinder := func(_ string) (string, error) { return "", nil }
 	config := NewReceiveConfig(WithPublicKeyFinder(keyFinder))
 
 	// The chain length is unchanged -- the HTTPSig validator is replaced in place.

@@ -29,7 +29,7 @@ func signedRequestForActor(t *testing.T, keyID string) (*http.Request, sigs.Publ
 	// Sign supplies the "Date" header itself when it is absent.
 	require.NoError(t, sigs.Sign(request, keyID, privateKey))
 
-	keyFinder := func(id string) (string, error) {
+	keyFinder := func(_ string) (string, error) {
 		return sigs.EncodePublicPEM(privateKey), nil
 	}
 

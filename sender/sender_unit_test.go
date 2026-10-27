@@ -206,7 +206,7 @@ func (erroringLocator) Actor(id string) (Actor, error) {
 	return nil, derp.NotFound("erroringLocator.Actor", "unknown", id)
 }
 
-func (erroringLocator) Recipient(url string) (iter.Seq[string], error) {
+func (erroringLocator) Recipient(_ string) (iter.Seq[string], error) {
 	return nil, derp.Internal("erroringLocator.Recipient", "resolution failed")
 }
 

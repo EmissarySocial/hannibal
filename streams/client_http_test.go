@@ -12,23 +12,11 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// allowPrivateIPs is a remote.Option that lets a transaction connect to the
-// loopback address, which the SSRF guard blocks by default. It is needed because
-// the test server below listens on 127.0.0.1.
-func allowPrivateIPs() remote.Option {
-	return remote.Option{
-		BeforeRequest: func(txn *remote.Transaction) error {
-			txn.AllowPrivateIPs(true)
-			return nil
-		},
-	}
-}
-
 // TestDefaultClient_Load confirms the default client fetches and parses a remote
 // ActivityPub document.
 func TestDefaultClient_Load(t *testing.T) {
 
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.Header().Set("Content-Type", vocab.ContentTypeActivityPub)
 		_, _ = w.Write([]byte(`{"id":"urn:loaded","type":"Note"}`))
 	}))
@@ -48,7 +36,7 @@ func TestDefaultClient_Load(t *testing.T) {
 // TestDefaultClient_Load_Error confirms a server error is surfaced to the caller.
 func TestDefaultClient_Load_Error(t *testing.T) {
 
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
 	}))
 	defer server.Close()
@@ -57,28 +45,6 @@ func TestDefaultClient_Load_Error(t *testing.T) {
 	_, err := client.Load(server.URL)
 
 	require.Error(t, err)
-}
-
-// paddedNote returns a JSON Note whose encoding is the requested number of bytes
-func paddedNote(size int) string {
-	const prefix = `{"id":"urn:padded","type":"Note","content":"`
-	const suffix = `"}`
-	return prefix + strings.Repeat("a", size-len(prefix)-len(suffix)) + suffix
-}
-
-// servePaddedNote starts a server that answers every request with a Note of the requested size
-func servePaddedNote(t *testing.T, size int) *httptest.Server {
-
-	t.Helper()
-
-	body := paddedNote(size)
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
-		w.Header().Set("Content-Type", vocab.ContentTypeActivityPub)
-		_, _ = w.Write([]byte(body))
-	}))
-	t.Cleanup(server.Close)
-
-	return server
 }
 
 // TestDefaultClient_Load_AtMaxResponseSize confirms a document of exactly MaxResponseSize bytes is read
@@ -130,4 +96,37 @@ func TestDefaultClient_SaveDeleteNoop(t *testing.T) {
 
 	// SetRootClient is a no-op for the default client; calling it must not panic.
 	assert.NotPanics(t, func() { client.SetRootClient(client) })
+}
+
+// allowPrivateIPs returns a remote.Option that lets a transaction reach the loopback test servers
+// in this file, which remote's SSRF guard refuses by default
+func allowPrivateIPs() remote.Option {
+	return remote.Option{
+		BeforeRequest: func(txn *remote.Transaction) error {
+			txn.AllowPrivateIPs(true)
+			return nil
+		},
+	}
+}
+
+// servePaddedNote starts a server that answers every request with a Note of the requested size
+func servePaddedNote(t *testing.T, size int) *httptest.Server {
+
+	t.Helper()
+
+	body := paddedNote(size)
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", vocab.ContentTypeActivityPub)
+		_, _ = w.Write([]byte(body))
+	}))
+	t.Cleanup(server.Close)
+
+	return server
+}
+
+// paddedNote returns a JSON Note whose encoding is the requested number of bytes
+func paddedNote(size int) string {
+	const prefix = `{"id":"urn:padded","type":"Note","content":"`
+	const suffix = `"}`
+	return prefix + strings.Repeat("a", size-len(prefix)-len(suffix)) + suffix
 }

@@ -14,10 +14,10 @@ type testClient struct {
 }
 
 // nolint:unused
-func (client testClient) SetRootClient(rootClient Client) {}
+func (client testClient) SetRootClient(_ Client) {}
 
 // nolint:unused
-func (client testClient) Load(uri string, options ...any) (Document, error) {
+func (client testClient) Load(uri string, _ ...any) (Document, error) {
 
 	if value, ok := client.data[uri]; ok {
 		return NewDocument(value, WithClient(client)), nil
@@ -26,11 +26,11 @@ func (client testClient) Load(uri string, options ...any) (Document, error) {
 	return NilDocument(), derp.Internal("hannibal.streams.testClient.Load", "Unknown URI", uri)
 }
 
-func (client testClient) Save(document Document) error {
+func (client testClient) Save(_ Document) error {
 	return nil
 }
 
-func (client testClient) Delete(documentID string) error {
+func (client testClient) Delete(_ string) error {
 	return nil
 }
 

@@ -126,10 +126,8 @@ func equivalent(original any, clone any) bool {
 			return false
 		}
 
-		iterator := originalValue.MapRange()
-		for iterator.Next() {
-			cloneChild := cloneValue.MapIndex(iterator.Key())
-			if !cloneChild.IsValid() || !equivalent(iterator.Value().Interface(), cloneChild.Interface()) {
+		for iterator := originalValue.MapRange(); iterator.Next(); {
+			if cloneChild := cloneValue.MapIndex(iterator.Key()); !cloneChild.IsValid() || !equivalent(iterator.Value().Interface(), cloneChild.Interface()) {
 				return false
 			}
 		}
@@ -190,8 +188,7 @@ func assertNoSharedContainers(t *testing.T, original any, clone any, path string
 				"map at %s is shared between original and clone", path)
 		}
 
-		iterator := originalValue.MapRange()
-		for iterator.Next() {
+		for iterator := originalValue.MapRange(); iterator.Next(); {
 			key := iterator.Key()
 			cloneChild := cloneValue.MapIndex(key)
 			require.True(t, cloneChild.IsValid(), "clone is missing key %v at %s", key, path)

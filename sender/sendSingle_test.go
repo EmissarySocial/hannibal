@@ -48,8 +48,8 @@ func (l keyedLocator) Actor(id string) (Actor, error) {
 	return nil, derp.NotFound("keyedLocator.Actor", "unknown actor", id)
 }
 
-func (l keyedLocator) Recipient(url string) (iter.Seq[string], error) {
-	return func(yield func(string) bool) {}, nil
+func (l keyedLocator) Recipient(_ string) (iter.Seq[string], error) {
+	return func(_ func(string) bool) {}, nil
 }
 
 // newKeyedSender builds a Sender whose single actor has a real signing key.
@@ -121,7 +121,7 @@ func TestSendToSingleRecipient_ServerError(t *testing.T) {
 
 	sender, actorID := newKeyedSender(t)
 
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
 	}))
 	defer server.Close()
@@ -142,7 +142,7 @@ func TestSendToSingleRecipient_ClientError(t *testing.T) {
 
 	sender, actorID := newKeyedSender(t)
 
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusBadRequest)
 	}))
 	defer server.Close()
@@ -163,7 +163,7 @@ func TestSendToSingleRecipient_TooManyRequests(t *testing.T) {
 
 	sender, actorID := newKeyedSender(t)
 
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusTooManyRequests)
 	}))
 	defer server.Close()

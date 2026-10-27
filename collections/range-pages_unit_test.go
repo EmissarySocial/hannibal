@@ -17,15 +17,15 @@ type mapClient struct {
 
 func (client mapClient) SetRootClient(streams.Client) {}
 
-func (client mapClient) Load(uri string, options ...any) (streams.Document, error) {
+func (client mapClient) Load(uri string, _ ...any) (streams.Document, error) {
 	if value, ok := client.documents[uri]; ok {
 		return streams.NewDocument(value, streams.WithClient(client)), nil
 	}
 	return streams.NilDocument(), derp.Internal("collections.mapClient.Load", "Unknown URI", uri)
 }
 
-func (client mapClient) Save(streams.Document) error    { return nil }
-func (client mapClient) Delete(documentID string) error { return nil }
+func (client mapClient) Save(streams.Document) error { return nil }
+func (client mapClient) Delete(_ string) error       { return nil }
 
 // inlineCollection builds a single-page OrderedCollection with the given item IDs
 // inline (no remote paging required).

@@ -18,7 +18,7 @@ func NewHTTPLookup() HTTPLookup {
 }
 
 // Validate confirms the activity exists by fetching it from its origin server.
-func (v HTTPLookup) Validate(request *http.Request, activity *streams.Document) Result {
+func (v HTTPLookup) Validate(_ *http.Request, activity *streams.Document) Result {
 
 	const location = "hannibal.validator.HTTPLookup"
 

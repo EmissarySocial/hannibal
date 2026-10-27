@@ -10,7 +10,9 @@ import (
 )
 
 // DeletedObject validates "delete" activities by trying to retrieve the original object.
-type DeletedObject struct{}
+type DeletedObject struct {
+	allowPrivateIPs bool // Set only by this package's tests, so they can reach a loopback server
+}
 
 // NewDeletedObject returns a fully initialized DeletedObject validator.
 func NewDeletedObject() DeletedObject {
@@ -18,7 +20,7 @@ func NewDeletedObject() DeletedObject {
 }
 
 // Validate implements the Validator interface, which performs the actual validation.
-func (v DeletedObject) Validate(request *http.Request, activity *streams.Document) Result {
+func (v DeletedObject) Validate(_ *http.Request, activity *streams.Document) Result {
 
 	const location = "hannibal.validator.DeletedObject"
 
@@ -39,7 +41,8 @@ func (v DeletedObject) Validate(request *http.Request, activity *streams.Documen
 	// Try to retrieve the original document, reading no more than any other ActivityStreams client
 	txn := remote.Get(objectID).
 		Header("Accept", "application/activity+json").
-		MaxResponseSize(streams.MaxResponseSize)
+		MaxResponseSize(streams.MaxResponseSize).
+		AllowPrivateIPs(v.allowPrivateIPs)
 
 	if err := txn.Send(); err != nil {
 

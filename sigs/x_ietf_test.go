@@ -18,10 +18,10 @@ import (
 // https://datatracker.ietf.org/doc/html/draft-cavage-http-signatures#appendix-C.1
 func Test_IETF_Default_Test_C1(t *testing.T) {
 	signedFields := []string{"date"}
-	request := test_IETF_Request()
+	request := testIETFRequest()
 
 	// Sign the document
-	err := Sign(request, "Test", test_IETF_PrivateKey(), SignerFields(signedFields...))
+	err := Sign(request, "Test", testIETFPrivateKey(), SignerFields(signedFields...))
 	require.Nil(t, err)
 
 	// Check the signature with "require"
@@ -29,17 +29,17 @@ func Test_IETF_Default_Test_C1(t *testing.T) {
 	require.Equal(t, expectedSignature, request.Header.Get("Signature"))
 
 	// Verify the signature
-	_, err = Verify(request, test_IETF_PublicPEM(), VerifierFields(signedFields...), VerifierIgnoreTimeout())
+	_, err = Verify(request, testIETFPublicPEM(), VerifierFields(signedFields...), VerifierIgnoreTimeout())
 	require.Nil(t, err)
 }
 
 // https://datatracker.ietf.org/doc/html/draft-cavage-http-signatures#appendix-C.2
 func Test_IETF_Basic_Test_C2(t *testing.T) {
 	signedFields := []string{"(request-target)", "host", "date"}
-	request := test_IETF_Request()
+	request := testIETFRequest()
 
 	// Sign the document
-	err := Sign(request, "Test", test_IETF_PrivateKey(), SignerFields(signedFields...))
+	err := Sign(request, "Test", testIETFPrivateKey(), SignerFields(signedFields...))
 	require.Nil(t, err)
 
 	// Check the signature with "require"
@@ -47,13 +47,13 @@ func Test_IETF_Basic_Test_C2(t *testing.T) {
 	require.Equal(t, expectedSignature, request.Header.Get("Signature"))
 
 	// Verify the signature
-	_, err = Verify(request, test_IETF_PublicPEM(), VerifierFields(signedFields...), VerifierIgnoreTimeout())
+	_, err = Verify(request, testIETFPublicPEM(), VerifierFields(signedFields...), VerifierIgnoreTimeout())
 	require.Nil(t, err)
 }
 
 func Test_IETF_All_Headers_Prep(t *testing.T) {
 	signedFields := []string{"(request-target)", "(created)", "(expires)", "host", "date", "content-type", "digest", "content-length"}
-	request := test_IETF_Request()
+	request := testIETFRequest()
 
 	signature := NewSignature()
 	signature.Created = 1402170695
@@ -108,7 +108,8 @@ func Test_IEFT_SignatureStringConstruction(t *testing.T) {
 	require.Equal(t, expectedPlainText, plaintext)
 }
 
-func test_IETF_Request() *http.Request {
+// testIETFRequest returns the sample POST request from the draft's Appendix C
+func testIETFRequest() *http.Request {
 
 	requestString := removeTabs(
 		`POST /foo?param=value&pet=dog HTTP/1.1
@@ -126,8 +127,9 @@ func test_IETF_Request() *http.Request {
 	return result
 }
 
-func test_IETF_PublicPEM() PublicKeyFinder {
-	return func(keyID string) (string, error) {
+// testIETFPublicPEM returns a PublicKeyFinder that always answers with the draft's sample public key
+func testIETFPublicPEM() PublicKeyFinder {
+	return func(_ string) (string, error) {
 		return removeTabs(
 			`-----BEGIN PUBLIC KEY-----
 			MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQDCFENGw33yGihy92pDjZQhl0C3
@@ -138,7 +140,8 @@ func test_IETF_PublicPEM() PublicKeyFinder {
 	}
 }
 
-func test_IETF_PrivateKey() crypto.PrivateKey {
+// testIETFPrivateKey returns the draft's sample RSA private key
+func testIETFPrivateKey() crypto.PrivateKey {
 
 	privatePEM := removeTabs(
 		`-----BEGIN RSA PRIVATE KEY-----

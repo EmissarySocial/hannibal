@@ -60,7 +60,7 @@ func makeActivities(n int, fullObjects bool) []mapof.Any {
 // iterator returns an IteratorFunc that yields the given activities, ignoring the
 // startIndex (the storage layer is assumed to pre-filter).
 func iterator(activities []mapof.Any) IteratorFunc {
-	return func(startIndex string) (iter.Seq[mapof.Any], error) {
+	return func(_ string) (iter.Seq[mapof.Any], error) {
 		return func(yield func(mapof.Any) bool) {
 			for _, activity := range activities {
 				if !yield(activity) {
@@ -173,7 +173,7 @@ func TestServe_SinglePage_IteratorError(t *testing.T) {
 
 	ctx, _ := newContext("https://example.com/outbox")
 
-	failingIterator := func(startIndex string) (iter.Seq[mapof.Any], error) {
+	failingIterator := func(_ string) (iter.Seq[mapof.Any], error) {
 		return nil, derp.Internal("test", "iterator failed")
 	}
 
@@ -272,7 +272,7 @@ func TestServe_Page_IteratorError(t *testing.T) {
 
 	ctx, _ := newContext("https://example.com/outbox?after=FIRST")
 
-	failingIterator := func(startIndex string) (iter.Seq[mapof.Any], error) {
+	failingIterator := func(_ string) (iter.Seq[mapof.Any], error) {
 		return nil, derp.Internal("test", "iterator failed")
 	}
 

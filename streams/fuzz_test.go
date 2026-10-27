@@ -86,7 +86,7 @@ func FuzzCollectionUnmarshalJSON(f *testing.F) {
 
 	seedJSON(f)
 
-	f.Fuzz(func(t *testing.T, data []byte) {
+	f.Fuzz(func(_ *testing.T, data []byte) {
 		var collection Collection
 		_ = json.Unmarshal(data, &collection)
 	})
@@ -97,7 +97,7 @@ func FuzzOrderedCollectionUnmarshalJSON(f *testing.F) {
 
 	seedJSON(f)
 
-	f.Fuzz(func(t *testing.T, data []byte) {
+	f.Fuzz(func(_ *testing.T, data []byte) {
 		var collection OrderedCollection
 		_ = json.Unmarshal(data, &collection)
 	})
@@ -108,7 +108,7 @@ func FuzzCollectionPageUnmarshalJSON(f *testing.F) {
 
 	seedJSON(f)
 
-	f.Fuzz(func(t *testing.T, data []byte) {
+	f.Fuzz(func(_ *testing.T, data []byte) {
 		var page CollectionPage
 		_ = json.Unmarshal(data, &page)
 	})
@@ -119,7 +119,7 @@ func FuzzOrderedCollectionPageUnmarshalJSON(f *testing.F) {
 
 	seedJSON(f)
 
-	f.Fuzz(func(t *testing.T, data []byte) {
+	f.Fuzz(func(_ *testing.T, data []byte) {
 		var page OrderedCollectionPage
 		_ = json.Unmarshal(data, &page)
 	})
@@ -138,7 +138,7 @@ func FuzzContextUnmarshalJSON(f *testing.F) {
 	f.Add([]byte(`{`))
 	f.Add([]byte(`123`))
 
-	f.Fuzz(func(t *testing.T, data []byte) {
+	f.Fuzz(func(_ *testing.T, data []byte) {
 		var context Context
 		_ = json.Unmarshal(data, &context)
 	})

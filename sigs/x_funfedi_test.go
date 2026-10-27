@@ -31,7 +31,7 @@ func TestFunFedi(t *testing.T) {
 		{"@context": "https://www.w3.org/ns/activitystreams", "type": "Like", "actor": "https://verify.funfedi.dev/bob", "id": "https://verify.funfedi.dev/bobOEFNNp884mw", "object": "https://verify.funfedi.dev/bob"}
 		`)
 
-	keyFinder := func(keyID string) (string, error) {
+	keyFinder := func(_ string) (string, error) {
 		return "-----BEGIN PUBLIC KEY-----\nMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAo/r0o1lp0IUe6Y+IFm6Q\naHmMkyGXdHy9mE4l7+5AKQBGb8c3n6dDVIiECvrdmF1H8U1lsI/Q1nq8lQkuzxBV\nysmAPHFusW0ODy1NYGTEGYGnjfWuttltYGf8JgSzQMxUFnzg2PVXCmAq+QK3eENK\nm0xMc1EKagY5BBOtOljAP2iN0gdsb3RQ7mQHzBcZCataiMI52qVt/M/7Zony5W8e\nQWbLMPr3WMs+JPwz5TIVED4UMJxFswS5+yI1iQjgHgXdcw63ipJ/QWy/dtDU8llD\ne0TVR+KdKTxHpl2P3ky+OK6zYIO2MFfru8IDrax4i/zK1VTMzd9BipmoFdlK/5dw\n3wIDAQAB\n-----END PUBLIC KEY-----", nil
 	}
 

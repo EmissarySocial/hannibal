@@ -19,7 +19,7 @@ type stubValidator struct {
 	result validator.Result
 }
 
-func (s stubValidator) Validate(request *http.Request, document *streams.Document) validator.Result {
+func (s stubValidator) Validate(_ *http.Request, _ *streams.Document) validator.Result {
 	return s.result
 }
 
@@ -170,7 +170,7 @@ func TestReceiveAndHandle_HandlerError(t *testing.T) {
 
 	router := New[*capture]()
 	router.Add(vocab.ActivityTypeFollow, vocab.Any,
-		func(context *capture, activity streams.Document) error {
+		func(_ *capture, _ streams.Document) error {
 			return sentinel
 		})
 

@@ -18,7 +18,7 @@ type capture struct {
 // handler returns a RouteHandler that records the given label into the capture
 // context when invoked.
 func handler(label string) RouteHandler[*capture] {
-	return func(context *capture, activity streams.Document) error {
+	return func(context *capture, _ streams.Document) error {
 		context.hit = label
 		return nil
 	}
@@ -132,7 +132,7 @@ func TestRouter_Handle_PropagatesError(t *testing.T) {
 
 	router := New[*capture]()
 	router.Add(vocab.ActivityTypeCreate, vocab.ObjectTypeNote,
-		func(context *capture, activity streams.Document) error {
+		func(_ *capture, _ streams.Document) error {
 			return sentinel
 		})
 

@@ -18,7 +18,7 @@ func FuzzParseSignature(f *testing.F) {
 	f.Add(`signature="!!!"`)
 	f.Add(`keyId="k",headers="host date",signature="AAAA",created="123",expires="456"`)
 
-	f.Fuzz(func(t *testing.T, input string) {
+	f.Fuzz(func(_ *testing.T, input string) {
 		// Must not panic. A returned error is fine; a valid Signature is fine.
 		_, _ = ParseSignature(input)
 	})
@@ -57,7 +57,7 @@ func FuzzDecodePublicPEM(f *testing.F) {
 	f.Add("-----BEGIN RSA PUBLIC KEY-----\n\n-----END RSA PUBLIC KEY-----")
 	f.Add("-----BEGIN CERTIFICATE-----\nAAAA\n-----END CERTIFICATE-----")
 
-	f.Fuzz(func(t *testing.T, input string) {
+	f.Fuzz(func(_ *testing.T, input string) {
 		// Must not panic. A returned error is fine; a valid key is fine.
 		_, _ = DecodePublicPEM(input)
 	})
@@ -71,7 +71,7 @@ func FuzzDecodePrivatePEM(f *testing.F) {
 	f.Add("-----BEGIN PRIVATE KEY-----\nAAAA\n-----END PRIVATE KEY-----")
 	f.Add("-----BEGIN RSA PRIVATE KEY-----\n\n-----END RSA PRIVATE KEY-----")
 
-	f.Fuzz(func(t *testing.T, input string) {
+	f.Fuzz(func(_ *testing.T, input string) {
 		// Must not panic. A returned error is fine; a valid key is fine.
 		_, _ = DecodePrivatePEM(input)
 	})

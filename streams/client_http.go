@@ -56,16 +56,16 @@ func (client DefaultClient) Load(url string, options ...any) (Document, error) {
 
 // Save is required to implement the document.Cache interface.
 // For this client, Save is a NOOP
-func (client DefaultClient) Save(document Document) error {
+func (client DefaultClient) Save(_ Document) error {
 	return nil
 }
 
 // Delete is required to implement the document.Cache interface.
 // For this client, Delete is a NOOP
-func (client DefaultClient) Delete(documentID string) error {
+func (client DefaultClient) Delete(_ string) error {
 	return nil
 }
 
 // SetRootClient is required to implement the hannibal.Client interface.
 // For this client, SetRootClient is a NOOP
-func (client DefaultClient) SetRootClient(rootClient Client) {}
+func (client DefaultClient) SetRootClient(_ Client) {}

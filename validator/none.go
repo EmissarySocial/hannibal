@@ -18,6 +18,6 @@ func NewNone() None {
 
 // Validate uses the hannibal/sigs library to verify that the HTTP
 // request is signed with a valid key.
-func (validator None) Validate(request *http.Request, activity *streams.Document) Result {
+func (validator None) Validate(_ *http.Request, _ *streams.Document) Result {
 	return ResultValid
 }
