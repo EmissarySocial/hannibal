@@ -35,7 +35,7 @@ func NewActor(actorID string, privateKey crypto.PrivateKey, options ...ActorOpti
 		actorID:     actorID,
 		publicKeyID: actorID + "#main-key",
 		privateKey:  privateKey,
-		followers:   func(yield func(string) bool) {}, // Default is an empty iterator
+		followers:   func(_ func(string) bool) {}, // Default is an empty iterator
 	}
 
 	// Apply additional options

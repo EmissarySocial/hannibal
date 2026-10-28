@@ -8,6 +8,8 @@ import (
 	"github.com/benpate/hannibal/streams"
 )
 
+// TestDocuments logs the published dates of up to 100 documents from a live
+// Mastodon outbox.
 func TestDocuments(t *testing.T) {
 
 	doc := streams.NewDocument("https://mastodon.social/@benpate")

@@ -27,7 +27,7 @@ func TestVerify_Dino1(t *testing.T) {
 	request, err := http.ReadRequest(requestReader)
 	require.Nil(t, err)
 
-	keyFinder := func(keyID string) (string, error) {
+	keyFinder := func(_ string) (string, error) {
 		return removeTabs(`-----BEGIN PUBLIC KEY-----
 		MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAtHiuMUfXZ+H7ruDYDfNZ
 		OYD1PChkSZJoHgoS/3qrue/O3QM7UEos9sWR2yQ3xH5VdLMx0jR9yaPQfe6bS0C5
@@ -43,6 +43,8 @@ func TestVerify_Dino1(t *testing.T) {
 	require.Nil(t, err)
 }
 
+// TestVerify_Dino2 verifies a second sample request from https://dinochiesa.github.io/httpsig/,
+// signed with a different key
 func TestVerify_Dino2(t *testing.T) {
 
 	requestString := removeTabs(
@@ -60,7 +62,7 @@ func TestVerify_Dino2(t *testing.T) {
 	request, err := http.ReadRequest(requestReader)
 	require.Nil(t, err)
 
-	keyFinder := func(keyID string) (string, error) {
+	keyFinder := func(_ string) (string, error) {
 		return removeTabs(
 			`-----BEGIN PUBLIC KEY-----
 			MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA4wCAxz92RHsFI6F6c1nP
@@ -77,6 +79,8 @@ func TestVerify_Dino2(t *testing.T) {
 	require.Nil(t, err)
 }
 
+// TestSign_Dino confirms that signing a sample request with a known key produces the
+// expected Signature header
 func TestSign_Dino(t *testing.T) {
 
 	requestString := removeTabs(

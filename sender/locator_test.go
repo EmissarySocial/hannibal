@@ -7,8 +7,10 @@ import (
 	"github.com/benpate/rosetta/ranges"
 )
 
+// testLocator is a stub Locator that resolves testActor and fixed inbox lists.
 type testLocator struct{}
 
+// Actor returns testActor when the address is its ID, and a NotFound error otherwise.
 func (t testLocator) Actor(address string) (Actor, error) {
 
 	result := testActor{} // nolint:scopeguard - it's just a test, bro.
@@ -20,6 +22,8 @@ func (t testLocator) Actor(address string) (Actor, error) {
 	return nil, derp.NotFound("testLocator.Actor", "Unable to load actor")
 }
 
+// Recipient returns one inbox for the test actor's URL, three for its followers
+// collection, and an empty iterator for any other address.
 func (t testLocator) Recipient(address string) (iter.Seq[string], error) {
 
 	switch address {

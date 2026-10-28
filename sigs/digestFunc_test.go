@@ -22,10 +22,12 @@ func TestGetDigestFunc(t *testing.T) {
 	fn, err := getDigestFunc(crypto.SHA256)
 	require.Nil(t, err)
 	require.NotNil(t, fn)
+	require.Equal(t, DigestSHA256([]byte("abc")), fn([]byte("abc")))
 
 	fn, err = getDigestFunc(crypto.SHA512)
 	require.Nil(t, err)
 	require.NotNil(t, fn)
+	require.Equal(t, DigestSHA512([]byte("abc")), fn([]byte("abc")))
 
 	// An unsupported algorithm returns an error and a nil function.
 	fn, err = getDigestFunc(crypto.MD5)
@@ -74,6 +76,7 @@ func TestGetDigestFuncByName(t *testing.T) {
 	fn, err := getDigestFuncByName("SHA-256")
 	require.Nil(t, err)
 	require.NotNil(t, fn)
+	require.Equal(t, DigestSHA256([]byte("abc")), fn([]byte("abc")))
 
 	// Unknown algorithm -> error, so VerifyDigest skips it instead of treating
 	// it as SHA-256.

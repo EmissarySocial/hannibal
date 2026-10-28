@@ -8,6 +8,7 @@ import (
 	"github.com/benpate/hannibal/streams"
 )
 
+// TestPages logs the IDs of up to 16 pages from a live Mastodon outbox.
 func TestPages(t *testing.T) {
 
 	doc := streams.NewDocument("https://mastodon.social/@benpate")

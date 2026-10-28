@@ -9,6 +9,8 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+// TestIsActivityPubContentType confirms which single media types count as
+// ActivityPub, ignoring parameters and case.
 func TestIsActivityPubContentType(t *testing.T) {
 	require.True(t, IsActivityPubContentType("application/json"))
 	require.True(t, IsActivityPubContentType("application/json; everything after the semicolon is ignored"))
@@ -82,7 +84,7 @@ func TestAcceptsActivityPub(t *testing.T) {
 		{"everything refused", "text/html;q=0, application/activity+json;q=0", false},
 		{"html wins on quality", "text/html;q=1.0, application/activity+json;q=0.9", false},
 		{"malformed quality is discarded", "application/activity+json;q=bogus", false},
-		{"malformed parameter still selects", "text/html;;", false},
+		{"malformed parameter still selects", "application/activity+json;;", true},
 
 		// A quoted parameter value may contain a comma; splitting inside it would lose the entry.
 		{"comma inside a quoted profile", `application/ld+json; profile="https://example.com/a,b"`, true},
@@ -102,7 +104,7 @@ func TestAcceptsActivityPub(t *testing.T) {
 // TestSplitAcceptHeader covers the splitter's contract directly.
 func TestSplitAcceptHeader(t *testing.T) {
 
-	// AcceptsActivityPub cannot see a mis-split: a torn fragment still yields a usable media type at
+	// acceptsActivityPub cannot see a mis-split: a torn fragment still yields a usable media type at
 	// the default quality, so it ties with the entry it came from and resolves back to the same answer.
 	table := []struct {
 		name   string

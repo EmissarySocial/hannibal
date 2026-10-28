@@ -9,6 +9,8 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+// TestSender_GetRecipients confirms getRecipients resolves an addressed actor to
+// its single inbox through the Locator.
 func TestSender_GetRecipients(t *testing.T) {
 
 	activity := mapof.Any{vocab.PropertyTo: "https://test.actor.social/"}
@@ -23,6 +25,8 @@ func TestSender_GetRecipients(t *testing.T) {
 	require.Equal(t, "https://testactor.social/inbox", recipients[0])
 }
 
+// TestLocator_GetFollowers confirms getRecipients expands an addressed followers
+// collection into every follower's inbox, in order.
 func TestLocator_GetFollowers(t *testing.T) {
 
 	activity := mapof.Any{vocab.PropertyTo: "https://test.actor.social/followers"}

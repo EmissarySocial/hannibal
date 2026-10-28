@@ -9,6 +9,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+// Test_PixelFed confirms that a captured Undo request from Pixelfed verifies
 func Test_PixelFed(t *testing.T) {
 
 	raw := removeTabs(`POST /@64d68054a4bf39a519f27c67/pub/inbox HTTP/1.1
@@ -23,7 +24,7 @@ func Test_PixelFed(t *testing.T) {
 	
 	{"@context":"https:\/\/www.w3.org\/ns\/activitystreams","id":"https:\/\/pixelfed.social\/users\/benpate#follow\/595731146082391369\/undo","type":"Undo","actor":"https:\/\/pixelfed.social\/users\/benpate","object":{"id":"https:\/\/pixelfed.social\/users\/benpate#follows\/595731146082391369","actor":"https:\/\/pixelfed.social\/users\/benpate","object":"https:\/\/emdev.ddns.net\/@64d68054a4bf39a519f27c67","type":"Follow"}}`)
 
-	keyFinder := func(keyID string) (string, error) {
+	keyFinder := func(_ string) (string, error) {
 		return removeTabs(
 			`-----BEGIN PUBLIC KEY-----
 		MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAsuI80UzaF1gQinBAZnz7

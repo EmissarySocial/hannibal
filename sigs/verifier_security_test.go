@@ -17,52 +17,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// readCloser wraps a string as a replayable request body.
-func readCloser(body string) io.ReadCloser {
-	return io.NopCloser(bytes.NewReader([]byte(body)))
-}
-
-/******************************************
- * Test Helpers
- ******************************************/
-
-// newSignedRequest builds a POST request with the given body, signs it with the
-// provided private key, and returns the request. The body digest and signature
-// are applied, so the request is ready to verify.
-func newSignedRequest(t *testing.T, body string, publicKeyID string, privateKey crypto.PrivateKey, options ...SignerOption) *http.Request {
-	t.Helper()
-
-	request, err := http.NewRequest("POST", "https://example.com/inbox?x=1", bytes.NewReader([]byte(body)))
-	require.Nil(t, err)
-	request.Header.Set("Content-Type", "application/activity+json")
-	request.Header.Set("Date", dateHeader(time.Now()))
-
-	err = Sign(request, publicKeyID, privateKey, options...)
-	require.Nil(t, err)
-
-	return request
-}
-
-// rsaKeyFinder returns a PublicKeyFinder that always returns the RSA public key
-// belonging to the given private key.
-func rsaKeyFinder(privateKey *rsa.PrivateKey) PublicKeyFinder {
-	return func(keyID string) (string, error) {
-		return EncodePublicPEM(privateKey), nil
-	}
-}
-
-// encodeECDSAPublicPEM encodes an ECDSA public key as a PKIX "PUBLIC KEY" PEM,
-// which DecodePublicPEM accepts. The package only ships an RSA PEM encoder, so
-// the ECDSA tests encode their own keys here.
-func encodeECDSAPublicPEM(t *testing.T, publicKey *ecdsa.PublicKey) string {
-	t.Helper()
-
-	der, err := x509.MarshalPKIXPublicKey(publicKey)
-	require.Nil(t, err)
-
-	return string(pem.EncodeToMemory(&pem.Block{Type: "PUBLIC KEY", Bytes: der}))
-}
-
 /******************************************
  * Happy-Path Round Trips (RSA + ECDSA, SHA-256 + SHA-512)
  ******************************************/
@@ -99,7 +53,7 @@ func TestVerify_RoundTrip_ECDSA(t *testing.T) {
 			require.Nil(t, err)
 
 			publicPEM := encodeECDSAPublicPEM(t, &privateKey.PublicKey)
-			keyFinder := func(keyID string) (string, error) { return publicPEM, nil }
+			keyFinder := func(_ string) (string, error) { return publicPEM, nil }
 
 			request := newSignedRequest(t, `{"hello":"ecdsa"}`, "ecdsa-key", privateKey,
 				SignerSignatureHash(hash), SignerBodyDigest(hash))
@@ -265,7 +219,7 @@ func TestVerify_Reject_KeyFinderError(t *testing.T) {
 
 	request := newSignedRequest(t, `{"hello":"world"}`, "rsa-key", privateKey)
 
-	failingFinder := func(keyID string) (string, error) {
+	failingFinder := func(_ string) (string, error) {
 		return "", errString("key not found")
 	}
 
@@ -282,7 +236,7 @@ func TestVerify_Reject_BadPEMFromKeyFinder(t *testing.T) {
 
 	request := newSignedRequest(t, `{"hello":"world"}`, "rsa-key", privateKey)
 
-	badFinder := func(keyID string) (string, error) {
+	badFinder := func(_ string) (string, error) {
 		return "this is not a PEM", nil
 	}
 
@@ -309,7 +263,7 @@ func TestVerify_Reject_NoSignatureHeader(t *testing.T) {
 // panicking, for both the package function and the method.
 func TestVerify_Reject_NilRequest(t *testing.T) {
 
-	keyFinder := func(keyID string) (string, error) { return "", nil }
+	keyFinder := func(_ string) (string, error) { return "", nil }
 
 	_, err := Verify(nil, keyFinder)
 	require.NotNil(t, err)
@@ -351,7 +305,54 @@ func TestVerifySignature_ECDSA_Tampered(t *testing.T) {
 	require.NotNil(t, verifySignature(&privateKey.PublicKey, crypto.SHA256, digest, signature))
 }
 
+/******************************************
+ * Test Helpers
+ ******************************************/
+
+// newSignedRequest builds a POST request with the given body, signs it with the
+// provided private key, and returns the request. The body digest and signature
+// are applied, so the request is ready to verify.
+func newSignedRequest(t *testing.T, body string, publicKeyID string, privateKey crypto.PrivateKey, options ...SignerOption) *http.Request {
+	t.Helper()
+
+	request, err := http.NewRequest("POST", "https://example.com/inbox?x=1", bytes.NewReader([]byte(body)))
+	require.Nil(t, err)
+	request.Header.Set("Content-Type", "application/activity+json")
+	request.Header.Set("Date", dateHeader(time.Now()))
+
+	err = Sign(request, publicKeyID, privateKey, options...)
+	require.Nil(t, err)
+
+	return request
+}
+
+// rsaKeyFinder returns a PublicKeyFinder that always returns the RSA public key
+// belonging to the given private key.
+func rsaKeyFinder(privateKey *rsa.PrivateKey) PublicKeyFinder {
+	return func(_ string) (string, error) {
+		return EncodePublicPEM(privateKey), nil
+	}
+}
+
+// encodeECDSAPublicPEM encodes an ECDSA public key as a PKIX "PUBLIC KEY" PEM,
+// which DecodePublicPEM accepts. The package only ships an RSA PEM encoder, so
+// the ECDSA tests encode their own keys here.
+func encodeECDSAPublicPEM(t *testing.T, publicKey *ecdsa.PublicKey) string {
+	t.Helper()
+
+	der, err := x509.MarshalPKIXPublicKey(publicKey)
+	require.Nil(t, err)
+
+	return string(pem.EncodeToMemory(&pem.Block{Type: "PUBLIC KEY", Bytes: der}))
+}
+
+// readCloser wraps a string as a replayable request body.
+func readCloser(body string) io.ReadCloser {
+	return io.NopCloser(bytes.NewReader([]byte(body)))
+}
+
 // errString is a minimal error type for tests that need a custom error.
 type errString string
 
+// Error returns the error's text
 func (e errString) Error() string { return string(e) }

@@ -3,6 +3,7 @@ package outbox
 import (
 	"crypto/rand"
 	"crypto/rsa"
+	"slices"
 	"testing"
 
 	"github.com/benpate/hannibal/streams"
@@ -23,6 +24,7 @@ func TestNewActor(t *testing.T) {
 	assert.Equal(t, "https://example.com/users/alice#main-key", actor.publicKeyID,
 		"the default public key ID is the actor ID plus #main-key")
 	require.NotNil(t, actor.followers)
+	assert.Empty(t, slices.Collect(actor.followers))
 }
 
 // TestActorOptions confirms each ActorOption sets the matching field.
@@ -35,11 +37,13 @@ func TestActorOptions(t *testing.T) {
 		WithPublicKey("https://example.com/users/alice#custom-key"),
 		WithClient(client),
 		WithFollowers(followers),
+		WithAllowPrivateIPs(true),
 	)
 
 	assert.Equal(t, "https://example.com/users/alice#custom-key", actor.publicKeyID)
 	assert.NotNil(t, actor.client)
-	assert.NotNil(t, actor.followers)
+	assert.Equal(t, []string{"https://example.com/users/bob"}, slices.Collect(actor.followers))
+	assert.True(t, actor.allowPrivateIPs)
 }
 
 // TestActor_getClient confirms getClient returns the configured client, or a
@@ -51,9 +55,9 @@ func TestActor_getClient(t *testing.T) {
 	assert.NotNil(t, bare.getClient())
 
 	// A configured client is returned as-is.
-	client := streams.NewDefaultClient()
+	client := mockClient{inboxURL: "https://example.com/inbox"}
 	configured := NewActor("https://example.com/users/alice", nil, WithClient(client))
-	assert.NotNil(t, configured.getClient())
+	assert.Equal(t, client, configured.getClient())
 }
 
 // TestMakeIterator confirms makeIterator yields its values in order and honors an

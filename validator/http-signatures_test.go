@@ -13,29 +13,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// signedRequestForActor builds and signs a POST request, returning the request
-// and a key finder that serves the signing key. keyID is the public key ID used
-// as the signature's keyID (and therefore its ActorID once the fragment is
-// stripped).
-func signedRequestForActor(t *testing.T, keyID string) (*http.Request, sigs.PublicKeyFinder) {
-	t.Helper()
-
-	privateKey, err := rsa.GenerateKey(rand.Reader, 2048)
-	require.NoError(t, err)
-
-	request := httptest.NewRequest(http.MethodPost, "https://example.com/inbox",
-		bytes.NewReader([]byte(`{"hello":"world"}`)))
-
-	// Sign supplies the "Date" header itself when it is absent.
-	require.NoError(t, sigs.Sign(request, keyID, privateKey))
-
-	keyFinder := func(id string) (string, error) {
-		return sigs.EncodePublicPEM(privateKey), nil
-	}
-
-	return request, keyFinder
-}
-
 // TestHTTPSig_NoSignature confirms an unsigned request yields Unknown (the
 // validator abstains so other validators in the chain can run).
 func TestHTTPSig_NoSignature(t *testing.T) {
@@ -189,4 +166,27 @@ func TestHTTPSig_RefreshKeyStillChecksActor(t *testing.T) {
 	activity := actorDocument("https://example.com/users/eve")
 
 	require.Equal(t, ResultInvalid, v.Validate(request, &activity))
+}
+
+// signedRequestForActor builds and signs a POST request, returning the request
+// and a key finder that serves the signing key. keyID is the public key ID used
+// as the signature's keyID (and therefore its ActorID once the fragment is
+// stripped).
+func signedRequestForActor(t *testing.T, keyID string) (*http.Request, sigs.PublicKeyFinder) {
+	t.Helper()
+
+	privateKey, err := rsa.GenerateKey(rand.Reader, 2048)
+	require.NoError(t, err)
+
+	request := httptest.NewRequest(http.MethodPost, "https://example.com/inbox",
+		bytes.NewReader([]byte(`{"hello":"world"}`)))
+
+	// Sign supplies the "Date" header itself when it is absent.
+	require.NoError(t, sigs.Sign(request, keyID, privateKey))
+
+	keyFinder := func(_ string) (string, error) {
+		return sigs.EncodePublicPEM(privateKey), nil
+	}
+
+	return request, keyFinder
 }

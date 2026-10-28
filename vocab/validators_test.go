@@ -11,7 +11,7 @@ import (
 func TestValidateActivityType(t *testing.T) {
 
 	// Each recognized type must be returned verbatim. Listed against the named
-	// constants so a change to a constant's value is caught here, not in prod.
+	// constants so a type dropped from the switch is caught here, not in prod.
 	valid := []string{
 		ActivityTypeAccept,
 		ActivityTypeAdd,

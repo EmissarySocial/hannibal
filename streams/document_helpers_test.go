@@ -18,7 +18,8 @@ func TestDocument_Client(t *testing.T) {
 	client := testClient{}
 	doc := NewDocument(map[string]any{}, WithClient(client))
 
-	assert.NotNil(t, doc.Client())
+	// A document always has a client, so only the injected one proves WithClient worked
+	assert.Equal(t, client, doc.Client())
 }
 
 // TestDocument_SetValue confirms SetValue replaces the document's underlying value.
@@ -41,6 +42,7 @@ func TestDocument_AddOptions(t *testing.T) {
 	updated := original.AddOptions(WithHTTPHeader(header))
 
 	assert.Equal(t, vocab.ContentTypeActivityPub, updated.HTTPHeader().Get("Content-Type"))
+	assert.Empty(t, original.HTTPHeader().Get("Content-Type"))
 }
 
 // TestDocument_WithOptions confirms WithOptions applies options to the document
@@ -70,7 +72,7 @@ func TestNewCollection(t *testing.T) {
 
 	assert.Equal(t, "https://example.com/outbox", collection.ID)
 	assert.Equal(t, vocab.CoreTypeCollection, collection.Type)
-	assert.NotZero(t, collection.Context.Length())
+	assert.Equal(t, DefaultContext(), collection.Context)
 }
 
 // TestNewCollectionPage confirms the constructor sets the ID, type, and default context.
@@ -80,7 +82,7 @@ func TestNewCollectionPage(t *testing.T) {
 
 	assert.Equal(t, "https://example.com/outbox?page=1", page.ID)
 	assert.Equal(t, vocab.CoreTypeCollectionPage, page.Type)
-	assert.NotZero(t, page.Context.Length())
+	assert.Equal(t, DefaultContext(), page.Context)
 }
 
 // TestDocument_RangeInReplyTo confirms the iterator loads the in-reply-to

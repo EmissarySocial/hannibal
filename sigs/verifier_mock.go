@@ -22,7 +22,7 @@ func NewMockVerifier(keyID string, success bool) MockVerifier {
 }
 
 // Verify verifies the given http.Request
-func (mock *MockVerifier) Verify(request *http.Request, keyFinder PublicKeyFinder) (Signature, error) {
+func (mock *MockVerifier) Verify(_ *http.Request, _ PublicKeyFinder) (Signature, error) {
 
 	const location = "hannibal.sigs.MockVerifier.Verify"
 

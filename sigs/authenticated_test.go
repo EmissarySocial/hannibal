@@ -13,7 +13,7 @@ import (
 )
 
 // TestGetAuthenticatedActor confirms a validly signed request yields the actor
-// ID (the keyID with its fragment stripped), and an invalid request yields "".
+// ID (the keyID with its fragment stripped).
 func TestGetAuthenticatedActor(t *testing.T) {
 
 	privateKey, err := rsa.GenerateKey(rand.Reader, 2048)

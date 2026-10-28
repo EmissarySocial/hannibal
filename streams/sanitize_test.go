@@ -49,8 +49,9 @@ func TestSanitize_Concurrent(t *testing.T) {
 	}
 
 	// Sanitize every input from many goroutines, and collect any mismatch
+	// (two checks per input, so the buffer holds every possible mismatch)
 	var waitGroup sync.WaitGroup
-	mismatches := make(chan string, 64*len(sanitizeCorpus))
+	mismatches := make(chan string, 2*64*len(sanitizeCorpus))
 
 	for range 64 {
 		waitGroup.Go(func() {

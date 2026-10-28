@@ -26,12 +26,12 @@ func TestDocument_Range_Scalar(t *testing.T) {
 
 	doc := NewDocument("only")
 
-	var count int
-	for range doc.Range() {
-		count++
+	var collected []string
+	for item := range doc.Range() {
+		collected = append(collected, item.String())
 	}
 
-	assert.Equal(t, 1, count)
+	assert.Equal(t, []string{"only"}, collected)
 }
 
 // TestDocument_Range_EarlyStop confirms Range honors an early break.

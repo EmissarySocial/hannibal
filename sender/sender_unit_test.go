@@ -14,42 +14,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// taskRecorder captures every task published to a queue, via the queue's
-// PreProcessor hook. This lets tests assert what was enqueued without running
-// any worker goroutines.
-type taskRecorder struct {
-	mu    sync.Mutex
-	tasks []queue.Task
-}
-
-func (r *taskRecorder) preProcessor(task *queue.Task) error {
-	r.mu.Lock()
-	defer r.mu.Unlock()
-	r.tasks = append(r.tasks, *task)
-	return nil
-}
-
-func (r *taskRecorder) names() []string {
-	r.mu.Lock()
-	defer r.mu.Unlock()
-	result := make([]string, 0, len(r.tasks))
-	for _, task := range r.tasks {
-		result = append(result, task.Name)
-	}
-	return result
-}
-
-// newRecordingQueue builds a queue whose published tasks are captured by the
-// returned recorder. A generous buffer keeps Publish from blocking.
-func newRecordingQueue() (*queue.Queue, *taskRecorder) {
-	recorder := &taskRecorder{}
-	q := queue.New(
-		queue.WithPreProcessor(recorder.preProcessor),
-		queue.WithBufferSize(128),
-	)
-	return q, recorder
-}
-
 // TestSender_New_NilQueue confirms New tolerates a nil queue by creating an
 // in-memory one (with a loud warning), so the returned Sender is usable.
 func TestSender_New_NilQueue(t *testing.T) {
@@ -196,20 +160,6 @@ func TestSendToAllRecipients_ActorNotFound(t *testing.T) {
 	assert.Equal(t, queue.ResultStatusFailure, result.Status)
 }
 
-// erroringLocator finds the test actor but fails to resolve any recipient.
-type erroringLocator struct{}
-
-func (erroringLocator) Actor(id string) (Actor, error) {
-	if id == "https://test.actor.social" {
-		return testActor{}, nil
-	}
-	return nil, derp.NotFound("erroringLocator.Actor", "unknown", id)
-}
-
-func (erroringLocator) Recipient(url string) (iter.Seq[string], error) {
-	return nil, derp.Internal("erroringLocator.Recipient", "resolution failed")
-}
-
 // TestSendToAllRecipients_RecipientError confirms a failure to resolve recipients
 // is surfaced as an Error (retriable).
 func TestSendToAllRecipients_RecipientError(t *testing.T) {
@@ -268,4 +218,58 @@ func TestConsumer(t *testing.T) {
 	assert.Nil(t, consumer.OnSuccess(queue.Task{}))
 	assert.Nil(t, consumer.OnError(queue.Task{}, nil))
 	assert.Nil(t, consumer.OnFailure(queue.Task{}, nil))
+}
+
+// taskRecorder captures every task published to a queue, via the queue's
+// PreProcessor hook. This lets tests assert what was enqueued without running
+// any worker goroutines.
+type taskRecorder struct {
+	mu    sync.Mutex
+	tasks []queue.Task
+}
+
+// newRecordingQueue builds a queue whose published tasks are captured by the
+// returned recorder. A generous buffer keeps Publish from blocking.
+func newRecordingQueue() (*queue.Queue, *taskRecorder) {
+	recorder := &taskRecorder{}
+	q := queue.New(
+		queue.WithPreProcessor(recorder.preProcessor),
+		queue.WithBufferSize(128),
+	)
+	return q, recorder
+}
+
+// preProcessor records a copy of each task the queue publishes
+func (r *taskRecorder) preProcessor(task *queue.Task) error {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	r.tasks = append(r.tasks, *task)
+	return nil
+}
+
+// names returns the name of every recorded task, in the order published
+func (r *taskRecorder) names() []string {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	result := make([]string, 0, len(r.tasks))
+	for _, task := range r.tasks {
+		result = append(result, task.Name)
+	}
+	return result
+}
+
+// erroringLocator finds the test actor but fails to resolve any recipient.
+type erroringLocator struct{}
+
+// Actor returns the test actor for its own ID, and NotFound for any other ID
+func (erroringLocator) Actor(id string) (Actor, error) {
+	if id == "https://test.actor.social" {
+		return testActor{}, nil
+	}
+	return nil, derp.NotFound("erroringLocator.Actor", "unknown", id)
+}
+
+// Recipient always fails
+func (erroringLocator) Recipient(_ string) (iter.Seq[string], error) {
+	return nil, derp.Internal("erroringLocator.Recipient", "resolution failed")
 }

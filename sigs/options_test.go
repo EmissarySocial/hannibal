@@ -136,7 +136,7 @@ func TestGetAlgorithmName(t *testing.T) {
 // TestMockVerifier confirms the mock honors its configured success flag.
 func TestMockVerifier(t *testing.T) {
 
-	keyFinder := func(keyID string) (string, error) { return "", nil }
+	keyFinder := func(_ string) (string, error) { return "", nil }
 
 	success := NewMockVerifier("mock-key", true)
 	signature, err := success.Verify(nil, keyFinder)

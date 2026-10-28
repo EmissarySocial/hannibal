@@ -16,6 +16,8 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+// TestVerify_Manual confirms that a request signed with Sign carries the expected Digest,
+// and verifies against the signing key's public key
 func TestVerify_Manual(t *testing.T) {
 
 	// Create a new Request
@@ -38,7 +40,7 @@ func TestVerify_Manual(t *testing.T) {
 	require.NotEmpty(t, request.Header.Get("Signature"))
 
 	// Verify the Request
-	keyFinder := func(keyID string) (string, error) {
+	keyFinder := func(_ string) (string, error) {
 		return EncodePublicPEM(privateKey), nil
 	}
 
@@ -46,6 +48,7 @@ func TestVerify_Manual(t *testing.T) {
 	require.Nil(t, err)
 }
 
+// TestSignAndVerify_RSA_SHA256 confirms an RSA signature over a SHA-256 digest verifies
 func TestSignAndVerify_RSA_SHA256(t *testing.T) {
 
 	// Create an RSA key
@@ -63,6 +66,7 @@ func TestSignAndVerify_RSA_SHA256(t *testing.T) {
 	require.Nil(t, err)
 }
 
+// TestSignAndVerify_RSA_SHA512 confirms an RSA signature over a SHA-512 digest verifies
 func TestSignAndVerify_RSA_SHA512(t *testing.T) {
 
 	// Create an RSA key
@@ -80,6 +84,8 @@ func TestSignAndVerify_RSA_SHA512(t *testing.T) {
 	require.Nil(t, err)
 }
 
+// TestSignAndVerify_Emissary confirms that a captured Emissary signing string, signed with
+// the test key, verifies against the matching public key
 func TestSignAndVerify_Emissary(t *testing.T) {
 
 	privateKey, publicKey := getTestKeys()
@@ -98,9 +104,55 @@ func TestSignAndVerify_Emissary(t *testing.T) {
 	signedSignature, err := makeSignedDigest(hashedSignature, crypto.SHA256, privateKey)
 	require.Nil(t, err)
 
-	derp.Report(verifyHashAndSignature(plaintextSignature, crypto.SHA256, publicKey, signedSignature))
+	require.NoError(t, verifyHashAndSignature(plaintextSignature, crypto.SHA256, publicKey, signedSignature))
 }
 
+// TestVerifyHashAndSignature_ReportsOnlyAtTrace pins the report gate to zerolog's GLOBAL level.
+func TestVerifyHashAndSignature_ReportsOnlyAtTrace(t *testing.T) {
+
+	// Gating on log.Logger's own level instead makes this report fire at EVERY level, because
+	// zerolog.New hardcodes the package logger to TraceLevel and callers only set the global one.
+	// RULE: derp.Plugins carries a mutex, so it is swapped through SetPlugins and restored to
+	// derp's own default (plugins.JSON), never copied by value.
+	originalLevel := zerolog.GlobalLevel()
+	defer func() {
+		zerolog.SetGlobalLevel(originalLevel)
+		derp.SetPlugins(plugins.JSON{})
+	}()
+
+	// Sign one message, so that verifying a different one always fails
+	privateKey, err := rsa.GenerateKey(rand.Reader, 2048)
+	require.Nil(t, err)
+
+	digest := sha256.Sum256([]byte("this is the message"))
+	signature, err := makeSignedDigest(digest[:], crypto.SHA256, privateKey)
+	require.Nil(t, err)
+
+	testCases := []struct {
+		level    zerolog.Level
+		expected int
+	}{
+		{zerolog.DebugLevel, 0},
+		{zerolog.InfoLevel, 0},
+		{zerolog.Disabled, 0},
+		{zerolog.TraceLevel, 1},
+	}
+
+	for _, testCase := range testCases {
+
+		reporter := &countingReporter{}
+		derp.SetPlugins(reporter)
+		zerolog.SetGlobalLevel(testCase.level)
+
+		err := verifyHashAndSignature("a different message", crypto.SHA256, &privateKey.PublicKey, signature)
+
+		require.NotNil(t, err)
+		require.Equal(t, testCase.expected, reporter.count, testCase.level.String())
+	}
+}
+
+// getTestKeys returns a fixed RSA key pair, and panics if either PEM fails to decode
+// or the two keys do not match
 func getTestKeys() (crypto.PrivateKey, crypto.PublicKey) {
 
 	// Decode a Private Key
@@ -174,48 +226,4 @@ type countingReporter struct {
 // Report counts one reported error.
 func (reporter *countingReporter) Report(_ error) {
 	reporter.count++
-}
-
-// TestVerifyHashAndSignature_ReportsOnlyAtTrace pins the report gate to zerolog's GLOBAL level.
-func TestVerifyHashAndSignature_ReportsOnlyAtTrace(t *testing.T) {
-
-	// Gating on log.Logger's own level instead makes this report fire at EVERY level, because
-	// zerolog.New hardcodes the package logger to TraceLevel and callers only set the global one.
-	// RULE: derp.Plugins carries a mutex, so it is swapped through SetPlugins and restored to
-	// derp's own default (plugins.JSON), never copied by value.
-	originalLevel := zerolog.GlobalLevel()
-	defer func() {
-		zerolog.SetGlobalLevel(originalLevel)
-		derp.SetPlugins(plugins.JSON{})
-	}()
-
-	// Sign one message, so that verifying a different one always fails
-	privateKey, err := rsa.GenerateKey(rand.Reader, 2048)
-	require.Nil(t, err)
-
-	digest := sha256.Sum256([]byte("this is the message"))
-	signature, err := makeSignedDigest(digest[:], crypto.SHA256, privateKey)
-	require.Nil(t, err)
-
-	testCases := []struct {
-		level    zerolog.Level
-		expected int
-	}{
-		{zerolog.DebugLevel, 0},
-		{zerolog.InfoLevel, 0},
-		{zerolog.Disabled, 0},
-		{zerolog.TraceLevel, 1},
-	}
-
-	for _, testCase := range testCases {
-
-		reporter := &countingReporter{}
-		derp.SetPlugins(reporter)
-		zerolog.SetGlobalLevel(testCase.level)
-
-		err := verifyHashAndSignature("a different message", crypto.SHA256, &privateKey.PublicKey, signature)
-
-		require.NotNil(t, err)
-		require.Equal(t, testCase.expected, reporter.count, testCase.level.String())
-	}
 }

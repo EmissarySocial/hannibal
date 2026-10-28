@@ -15,7 +15,7 @@ func TestNewOrderedCollection(t *testing.T) {
 
 	assert.Equal(t, "https://example.com/outbox", collection.ID)
 	assert.Equal(t, vocab.CoreTypeOrderedCollection, collection.Type)
-	assert.NotZero(t, collection.Context.Length())
+	assert.Equal(t, DefaultContext(), collection.Context)
 	assert.NotNil(t, collection.OrderedItems)
 	assert.Len(t, collection.OrderedItems, 0)
 }
@@ -29,6 +29,6 @@ func TestNewOrderedCollectionPage(t *testing.T) {
 	assert.Equal(t, "https://example.com/outbox?page=1", page.ID)
 	assert.Equal(t, vocab.CoreTypeOrderedCollectionPage, page.Type)
 	assert.Equal(t, "https://example.com/outbox", page.PartOf)
-	assert.NotZero(t, page.Context.Length())
+	assert.Equal(t, DefaultContext(), page.Context)
 	assert.NotNil(t, page.OrderedItems)
 }

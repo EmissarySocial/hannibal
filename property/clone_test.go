@@ -15,6 +15,8 @@ import (
 // and which therefore exercise cloneChild's reflection fallback. They are declared locally so the
 // property package does not take a dependency on the Mongo driver just to test this.
 type namedSlice []any
+
+// namedMap is a named map type, standing in for the Mongo driver's primitive.M.
 type namedMap map[string]any
 
 /******************************************
@@ -207,7 +209,7 @@ func TestCloneChild_Passthrough(t *testing.T) {
 	assert.Equal(t, custom{Name: "kept"}, clone["struct"])
 	assert.Equal(t, channel, clone["chan"])
 	assert.Same(t, pointer, clone["pointer"])
-	assert.NotNil(t, clone["func"])
+	assert.IsType(t, TestCloneChild_Passthrough, clone["func"])
 	assert.Nil(t, clone["nil"])
 }
 

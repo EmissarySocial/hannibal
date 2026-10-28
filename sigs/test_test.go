@@ -7,12 +7,14 @@ import (
 	"github.com/rs/zerolog"
 )
 
+// init sets Unix timestamps and the Warn log level for this package's tests
 func init() {
 	// Configure logging
 	zerolog.TimeFieldFormat = zerolog.TimeFormatUnix
 	zerolog.SetGlobalLevel(zerolog.WarnLevel)
 }
 
+// must returns value, or panics if err is not nil
 func must[T any](value T, err error) T {
 	if err != nil {
 		panic(err)
@@ -20,6 +22,8 @@ func must[T any](value T, err error) T {
 	return value
 }
 
+// getTestPixelFedRequest returns a request carrying the body, Digest, and Signature of a captured
+// Pixelfed Follow delivery.
 func getTestPixelFedRequest() *http.Request {
 	var body bytes.Buffer
 	body.WriteString(`{"@context":"https:\/\/www.w3.org\/ns\/activitystreams","id":"https:\/\/pixelfed.social\/users\/benpate#follow\/595731146082391369","type":"Follow","actor":"https:\/\/pixelfed.social\/users\/benpate","object":"https:\/\/emdev.ddns.net\/@64d68054a4bf39a519f27c67"}`)

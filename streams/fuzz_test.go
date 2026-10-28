@@ -11,58 +11,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// seedJSON returns a corpus of valid, malformed, and hostile JSON payloads shared
-// by the streams fuzz targets. ActivityPub documents arrive from untrusted remote
-// servers, so every parser below must survive arbitrary bytes without panicking.
-func seedJSON(f *testing.F) {
-	f.Add([]byte(``))
-	f.Add([]byte(`null`))
-	f.Add([]byte(`{}`))
-	f.Add([]byte(`[]`))
-	f.Add([]byte(`""`))
-	f.Add([]byte(`0`))
-	f.Add([]byte(`"a string"`))
-	f.Add([]byte(`{"type":"Note","content":"hello","id":"https://x/1"}`))
-	f.Add([]byte(`{"type":"Create","actor":"https://x/@me","object":{"type":"Note"}}`))
-	f.Add([]byte(`{"type":"Collection","totalItems":2,"items":[{"id":"a"},{"id":"b"}]}`))
-	f.Add([]byte(`{"type":"OrderedCollection","orderedItems":["a","b"]}`))
-	f.Add([]byte(`{"@context":["https://www.w3.org/ns/activitystreams",{"toot":"x"}]}`))
-	f.Add([]byte(`{"@context":"https://www.w3.org/ns/activitystreams"}`))
-	f.Add([]byte(`{"to":["a","b"],"cc":"c","tag":[{"type":"Mention","href":"h"}]}`))
-	f.Add([]byte(`{"items":{"id":"single-not-array"}}`))
-	f.Add([]byte(`{"height":"not-a-number","width":1.5}`))
-	f.Add([]byte(`{` + `"a":` + `"unterminated`))            // malformed
-	f.Add([]byte(`{"deeply":{"nested":{"value":[[[1]]]}}}`)) // nesting
-}
-
-// walkDocument exercises the accessor surface of a parsed Document so that the fuzzer
-// reaches code beyond the unmarshaler itself. None of these calls may panic, no matter
-// what was parsed.
-func walkDocument(t *testing.T, doc Document) {
-	t.Helper()
-
-	_ = doc.Type()
-	_ = doc.ID()
-	_ = doc.IsNil()
-	_ = doc.IsString()
-	_ = doc.IsMap()
-	_ = doc.IsSlice()
-	_ = doc.Slice()
-	_ = doc.Actor().ID()
-	_ = doc.Object().Type()
-	_ = doc.Content()
-	_ = doc.Summary()
-	_ = doc.HTMLString()
-	_ = doc.Height()
-	_ = doc.Published()
-
-	// Walk the addressee and item iterators, which traverse nested values.
-	for range doc.RangeAddressees() {
-	}
-	for range doc.Range() {
-	}
-}
-
 // FuzzDocumentUnmarshalJSON parses arbitrary bytes into a Document and then walks its
 // accessors, confirming that neither parsing nor traversal panics on hostile input.
 func FuzzDocumentUnmarshalJSON(f *testing.F) {
@@ -86,7 +34,7 @@ func FuzzCollectionUnmarshalJSON(f *testing.F) {
 
 	seedJSON(f)
 
-	f.Fuzz(func(t *testing.T, data []byte) {
+	f.Fuzz(func(_ *testing.T, data []byte) {
 		var collection Collection
 		_ = json.Unmarshal(data, &collection)
 	})
@@ -97,7 +45,7 @@ func FuzzOrderedCollectionUnmarshalJSON(f *testing.F) {
 
 	seedJSON(f)
 
-	f.Fuzz(func(t *testing.T, data []byte) {
+	f.Fuzz(func(_ *testing.T, data []byte) {
 		var collection OrderedCollection
 		_ = json.Unmarshal(data, &collection)
 	})
@@ -108,7 +56,7 @@ func FuzzCollectionPageUnmarshalJSON(f *testing.F) {
 
 	seedJSON(f)
 
-	f.Fuzz(func(t *testing.T, data []byte) {
+	f.Fuzz(func(_ *testing.T, data []byte) {
 		var page CollectionPage
 		_ = json.Unmarshal(data, &page)
 	})
@@ -119,7 +67,7 @@ func FuzzOrderedCollectionPageUnmarshalJSON(f *testing.F) {
 
 	seedJSON(f)
 
-	f.Fuzz(func(t *testing.T, data []byte) {
+	f.Fuzz(func(_ *testing.T, data []byte) {
 		var page OrderedCollectionPage
 		_ = json.Unmarshal(data, &page)
 	})
@@ -138,7 +86,7 @@ func FuzzContextUnmarshalJSON(f *testing.F) {
 	f.Add([]byte(`{`))
 	f.Add([]byte(`123`))
 
-	f.Fuzz(func(t *testing.T, data []byte) {
+	f.Fuzz(func(_ *testing.T, data []byte) {
 		var context Context
 		_ = json.Unmarshal(data, &context)
 	})
@@ -236,20 +184,6 @@ func FuzzDocumentIsSameOrigin(f *testing.F) {
 	})
 }
 
-// seedInteractionPolicyJSON adds interactionPolicy shapes, real and hostile, to a fuzz corpus
-func seedInteractionPolicyJSON(f *testing.F) {
-	f.Add([]byte(`{"canReply":{"automaticApproval":["https://www.w3.org/ns/activitystreams#Public"]}}`), "https://b.example/u/s")
-	f.Add([]byte(`{"canReply":{"automaticApproval":["https://a.example/u/a"],"manualApproval":["as:Public"]}}`), "https://b.example/u/s")
-	f.Add([]byte(`{"canLike":{"always":["https://a.example/u/a/followers"],"approvalRequired":"Public"}}`), "https://b.example/u/s")
-	f.Add([]byte(`{"canQuote":{"automaticApproval":[{"id":"https://b.example/u/s"},{"@id":"x"},{"type":"Link"}]}}`), "https://b.example/u/s")
-	f.Add([]byte(`{"canReply":{"automaticApproval":null,"always":[[["deep"]]]},"canAnnounce":[]}`), "")
-	f.Add([]byte(`[{"canReply":"https://a.example/policy"},7]`), "https://a.example/u/a")
-	f.Add([]byte(`"https://a.example/policy"`), "https://b.example/u/s")
-	f.Add([]byte(`{"canReply":{"automaticApproval":{"id":{"id":{"id":"x"}}}}}`), "x")
-	f.Add([]byte(`null`), "")
-	f.Add([]byte(`{`), "")
-}
-
 // FuzzInteractionPolicyUnmarshalJSON parses arbitrary bytes into an InteractionPolicy, and confirms that a
 // successful parse re-encodes stably and answers every permission without panicking or breaking GoToSocial's rules
 func FuzzInteractionPolicyUnmarshalJSON(f *testing.F) {
@@ -343,4 +277,70 @@ func FuzzDocumentInteractionAccessors(f *testing.F) {
 		_ = document.QuoteAuthorization().InteractingObject().ID()
 		_ = document.QuoteAuthorization().InteractionTarget().ID()
 	})
+}
+
+// seedJSON returns a corpus of valid, malformed, and hostile JSON payloads shared
+// by the streams fuzz targets. ActivityPub documents arrive from untrusted remote
+// servers, so every parser below must survive arbitrary bytes without panicking.
+func seedJSON(f *testing.F) {
+	f.Add([]byte(``))
+	f.Add([]byte(`null`))
+	f.Add([]byte(`{}`))
+	f.Add([]byte(`[]`))
+	f.Add([]byte(`""`))
+	f.Add([]byte(`0`))
+	f.Add([]byte(`"a string"`))
+	f.Add([]byte(`{"type":"Note","content":"hello","id":"https://x/1"}`))
+	f.Add([]byte(`{"type":"Create","actor":"https://x/@me","object":{"type":"Note"}}`))
+	f.Add([]byte(`{"type":"Collection","totalItems":2,"items":[{"id":"a"},{"id":"b"}]}`))
+	f.Add([]byte(`{"type":"OrderedCollection","orderedItems":["a","b"]}`))
+	f.Add([]byte(`{"@context":["https://www.w3.org/ns/activitystreams",{"toot":"x"}]}`))
+	f.Add([]byte(`{"@context":"https://www.w3.org/ns/activitystreams"}`))
+	f.Add([]byte(`{"to":["a","b"],"cc":"c","tag":[{"type":"Mention","href":"h"}]}`))
+	f.Add([]byte(`{"items":{"id":"single-not-array"}}`))
+	f.Add([]byte(`{"height":"not-a-number","width":1.5}`))
+	f.Add([]byte(`{` + `"a":` + `"unterminated`))            // malformed
+	f.Add([]byte(`{"deeply":{"nested":{"value":[[[1]]]}}}`)) // nesting
+}
+
+// walkDocument exercises the accessor surface of a parsed Document so that the fuzzer
+// reaches code beyond the unmarshaler itself. None of these calls may panic, no matter
+// what was parsed.
+func walkDocument(t *testing.T, doc Document) {
+	t.Helper()
+
+	_ = doc.Type()
+	_ = doc.ID()
+	_ = doc.IsNil()
+	_ = doc.IsString()
+	_ = doc.IsMap()
+	_ = doc.IsSlice()
+	_ = doc.Slice()
+	_ = doc.Actor().ID()
+	_ = doc.Object().Type()
+	_ = doc.Content()
+	_ = doc.Summary()
+	_ = doc.HTMLString()
+	_ = doc.Height()
+	_ = doc.Published()
+
+	// Walk the addressee and item iterators, which traverse nested values.
+	for range doc.RangeAddressees() {
+	}
+	for range doc.Range() {
+	}
+}
+
+// seedInteractionPolicyJSON adds interactionPolicy shapes, real and hostile, to a fuzz corpus
+func seedInteractionPolicyJSON(f *testing.F) {
+	f.Add([]byte(`{"canReply":{"automaticApproval":["https://www.w3.org/ns/activitystreams#Public"]}}`), "https://b.example/u/s")
+	f.Add([]byte(`{"canReply":{"automaticApproval":["https://a.example/u/a"],"manualApproval":["as:Public"]}}`), "https://b.example/u/s")
+	f.Add([]byte(`{"canLike":{"always":["https://a.example/u/a/followers"],"approvalRequired":"Public"}}`), "https://b.example/u/s")
+	f.Add([]byte(`{"canQuote":{"automaticApproval":[{"id":"https://b.example/u/s"},{"@id":"x"},{"type":"Link"}]}}`), "https://b.example/u/s")
+	f.Add([]byte(`{"canReply":{"automaticApproval":null,"always":[[["deep"]]]},"canAnnounce":[]}`), "")
+	f.Add([]byte(`[{"canReply":"https://a.example/policy"},7]`), "https://a.example/u/a")
+	f.Add([]byte(`"https://a.example/policy"`), "https://b.example/u/s")
+	f.Add([]byte(`{"canReply":{"automaticApproval":{"id":{"id":{"id":"x"}}}}}`), "x")
+	f.Add([]byte(`null`), "")
+	f.Add([]byte(`{`), "")
 }

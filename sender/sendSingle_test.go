@@ -31,7 +31,10 @@ type keyedActor struct {
 	privateKey crypto.PrivateKey
 }
 
+// ActorID returns the test actor's ID
 func (a keyedActor) ActorID() string { return a.id }
+
+// PrivateKey returns the test actor's key ID and RSA private key
 func (a keyedActor) PrivateKey() (string, crypto.PrivateKey) {
 	return a.keyID, a.privateKey
 }
@@ -41,6 +44,7 @@ type keyedLocator struct {
 	actor keyedActor
 }
 
+// Actor returns the keyed test actor for its own ID, and NotFound for any other ID
 func (l keyedLocator) Actor(id string) (Actor, error) {
 	if id == l.actor.id {
 		return l.actor, nil
@@ -48,29 +52,9 @@ func (l keyedLocator) Actor(id string) (Actor, error) {
 	return nil, derp.NotFound("keyedLocator.Actor", "unknown actor", id)
 }
 
-func (l keyedLocator) Recipient(url string) (iter.Seq[string], error) {
-	return func(yield func(string) bool) {}, nil
-}
-
-// newKeyedSender builds a Sender whose single actor has a real signing key.
-func newKeyedSender(t *testing.T) (Sender, string) {
-	t.Helper()
-
-	privateKey, err := rsa.GenerateKey(rand.Reader, 2048)
-	require.NoError(t, err)
-
-	actorID := "https://example.com/users/alice"
-	actor := keyedActor{
-		id:         actorID,
-		keyID:      actorID + "#main-key",
-		privateKey: privateKey,
-	}
-
-	q, _ := newRecordingQueue()
-
-	// These tests POST to loopback httptest servers that remote's SSRF guard would
-	// otherwise block, so opt in to private-IP delivery. Production keeps this FALSE.
-	return New(keyedLocator{actor: actor}, q, AllowPrivateIPs(true)), actorID
+// Recipient returns an empty sequence for every recipient
+func (l keyedLocator) Recipient(_ string) (iter.Seq[string], error) {
+	return func(_ func(string) bool) {}, nil
 }
 
 // TestSendToSingleRecipient_Success confirms a deliverable activity is POSTed to
@@ -121,7 +105,7 @@ func TestSendToSingleRecipient_ServerError(t *testing.T) {
 
 	sender, actorID := newKeyedSender(t)
 
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
 	}))
 	defer server.Close()
@@ -142,7 +126,7 @@ func TestSendToSingleRecipient_ClientError(t *testing.T) {
 
 	sender, actorID := newKeyedSender(t)
 
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusBadRequest)
 	}))
 	defer server.Close()
@@ -163,7 +147,7 @@ func TestSendToSingleRecipient_TooManyRequests(t *testing.T) {
 
 	sender, actorID := newKeyedSender(t)
 
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusTooManyRequests)
 	}))
 	defer server.Close()
@@ -207,48 +191,6 @@ func TestSignRequest(t *testing.T) {
 	t.Cleanup(func() { _ = response.Body.Close() })
 
 	assert.True(t, verified.Load(), "the signed request must verify against the signing key")
-}
-
-// capturedRequest records what a test inbox received
-type capturedRequest struct {
-	mu       sync.Mutex
-	count    int
-	body     []byte
-	digest   string
-	verified bool
-}
-
-// captureInbox starts a local inbox that records each request's body and digest, and verifies its signature
-func captureInbox(t *testing.T, sender Sender) (*httptest.Server, *capturedRequest) {
-	t.Helper()
-
-	publicKeyPEM := sigs.EncodePublicPEM(sender.locator.(keyedLocator).actor.privateKey.(*rsa.PrivateKey))
-	captured := &capturedRequest{}
-
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-
-		// Verify the signature (which also checks the digest) before the body is read
-		_, verifyErr := sigs.Verify(r, func(string) (string, error) { return publicKeyPEM, nil })
-		body, readErr := io.ReadAll(r.Body)
-
-		captured.mu.Lock()
-		captured.count++
-		captured.body = body
-		captured.digest = r.Header.Get("Digest")
-		captured.verified = (verifyErr == nil) && (readErr == nil)
-		captured.mu.Unlock()
-
-		w.WriteHeader(http.StatusOK)
-	}))
-	t.Cleanup(server.Close)
-
-	return server, captured
-}
-
-// sha256Digest returns the Digest header value for the provided body
-func sha256Digest(body []byte) string {
-	sum := sha256.Sum256(body)
-	return "SHA-256=" + base64.StdEncoding.EncodeToString(sum[:])
 }
 
 // TestSendToSingleRecipient_Body confirms a serialized body is POSTed byte-for-byte, with a matching digest and signature
@@ -327,4 +269,67 @@ func TestSendToSingleRecipient_NothingToSend(t *testing.T) {
 
 	assert.Equal(t, queue.ResultStatusFailure, result.Status)
 	assert.Zero(t, captured.count, "nothing may be sent to the recipient")
+}
+
+// newKeyedSender builds a Sender whose single actor has a real signing key.
+func newKeyedSender(t *testing.T) (Sender, string) {
+	t.Helper()
+
+	privateKey, err := rsa.GenerateKey(rand.Reader, 2048)
+	require.NoError(t, err)
+
+	actorID := "https://example.com/users/alice"
+	actor := keyedActor{
+		id:         actorID,
+		keyID:      actorID + "#main-key",
+		privateKey: privateKey,
+	}
+
+	q, _ := newRecordingQueue()
+
+	// These tests POST to loopback httptest servers that remote's SSRF guard would
+	// otherwise block, so opt in to private-IP delivery. Production keeps this FALSE.
+	return New(keyedLocator{actor: actor}, q, AllowPrivateIPs(true)), actorID
+}
+
+// capturedRequest records what a test inbox received
+type capturedRequest struct {
+	mu       sync.Mutex
+	count    int
+	body     []byte
+	digest   string
+	verified bool
+}
+
+// captureInbox starts a local inbox that records each request's body and digest, and verifies its signature
+func captureInbox(t *testing.T, sender Sender) (*httptest.Server, *capturedRequest) {
+	t.Helper()
+
+	publicKeyPEM := sigs.EncodePublicPEM(sender.locator.(keyedLocator).actor.privateKey.(*rsa.PrivateKey))
+	captured := &capturedRequest{}
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+
+		// Verify the signature (which also checks the digest) before the body is read
+		_, verifyErr := sigs.Verify(r, func(string) (string, error) { return publicKeyPEM, nil })
+		body, readErr := io.ReadAll(r.Body)
+
+		captured.mu.Lock()
+		captured.count++
+		captured.body = body
+		captured.digest = r.Header.Get("Digest")
+		captured.verified = (verifyErr == nil) && (readErr == nil)
+		captured.mu.Unlock()
+
+		w.WriteHeader(http.StatusOK)
+	}))
+	t.Cleanup(server.Close)
+
+	return server, captured
+}
+
+// sha256Digest returns the Digest header value for the provided body
+func sha256Digest(body []byte) string {
+	sum := sha256.Sum256(body)
+	return "SHA-256=" + base64.StdEncoding.EncodeToString(sum[:])
 }

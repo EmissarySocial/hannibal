@@ -8,16 +8,19 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+// testClient is an in-memory Client that serves documents from a fixed map
 // nolint:unused
 type testClient struct {
 	data mapof.Any
 }
 
+// SetRootClient is a NOOP for this stub
 // nolint:unused
-func (client testClient) SetRootClient(rootClient Client) {}
+func (client testClient) SetRootClient(_ Client) {}
 
+// Load returns the document stored under this URI, or an error when there is none
 // nolint:unused
-func (client testClient) Load(uri string, options ...any) (Document, error) {
+func (client testClient) Load(uri string, _ ...any) (Document, error) {
 
 	if value, ok := client.data[uri]; ok {
 		return NewDocument(value, WithClient(client)), nil
@@ -26,14 +29,17 @@ func (client testClient) Load(uri string, options ...any) (Document, error) {
 	return NilDocument(), derp.Internal("hannibal.streams.testClient.Load", "Unknown URI", uri)
 }
 
-func (client testClient) Save(document Document) error {
+// Save is a NOOP for this stub
+func (client testClient) Save(_ Document) error {
 	return nil
 }
 
-func (client testClient) Delete(documentID string) error {
+// Delete is a NOOP for this stub
+func (client testClient) Delete(_ string) error {
 	return nil
 }
 
+// TestTestClient confirms the testClient stub's Save and Delete succeed
 func TestTestClient(t *testing.T) {
 
 	// this is just a hack to make the "unused" linting messages go away

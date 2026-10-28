@@ -40,8 +40,8 @@ func TestNewValue(t *testing.T) {
 	check("sliceof.Any", sliceof.Any{1, 2}, Slice{1, 2})
 }
 
-// TestNewValue_Time is separated because time.Time isn't comparable with a plain
-// assert.Equal on the wrapper in every Go version; compare the unwrapped value.
+// TestNewValue_Time confirms NewValue wraps a time.Time as a Time holding the
+// same instant.
 func TestNewValue_Time(t *testing.T) {
 
 	now := time.Now()
@@ -66,41 +66,55 @@ func TestNewValue_Unsupported(t *testing.T) {
 	assert.Equal(t, Nil{}, NewValue(make(chan int)))
 }
 
-// getterFixture implements every Getter interface so we can exercise the
-// getter-interface branches of NewValue. Only one branch fires per call,
-// selected by which interface NewValue checks first; we test each in isolation
-// using the dedicated single-interface fixtures below.
+// The fixtures below each implement a single Getter interface, so that each
+// getter branch of NewValue is exercised in isolation.
 
+// boolGetterFixture implements only BoolGetter.
 type boolGetterFixture struct{}
 
+// Bool returns true.
 func (boolGetterFixture) Bool() bool { return true }
 
+// intGetterFixture implements only IntGetter.
 type intGetterFixture struct{}
 
+// Int returns 5.
 func (intGetterFixture) Int() int { return 5 }
 
+// int64GetterFixture implements only Int64Getter.
 type int64GetterFixture struct{}
 
+// Int64 returns 6.
 func (int64GetterFixture) Int64() int64 { return 6 }
 
+// floatGetterFixture implements only FloatGetter.
 type floatGetterFixture struct{}
 
+// Float returns 7.5.
 func (floatGetterFixture) Float() float64 { return 7.5 }
 
+// stringGetterFixture implements only StringGetter.
 type stringGetterFixture struct{}
 
+// String returns "from getter".
 func (stringGetterFixture) String() string { return "from getter" }
 
+// timeGetterFixture implements only TimeGetter.
 type timeGetterFixture struct{}
 
+// Time returns the Unix epoch in UTC.
 func (timeGetterFixture) Time() time.Time { return time.Unix(0, 0).UTC() }
 
+// mapGetterFixture implements only MapGetter.
 type mapGetterFixture struct{}
 
+// Map returns a one-key map, {"k": "v"}.
 func (mapGetterFixture) Map() map[string]any { return map[string]any{"k": "v"} }
 
+// sliceGetterFixture implements only SliceGetter.
 type sliceGetterFixture struct{}
 
+// Slice returns the two-element slice [1, 2].
 func (sliceGetterFixture) Slice() []any { return []any{1, 2} }
 
 // TestNewValue_Getters confirms NewValue honors the optional Getter interfaces,
@@ -133,7 +147,7 @@ func TestNewValue_ConvertFallback(t *testing.T) {
 	typedSlice := []string{"x", "y"}
 	sliceResult := NewValue(typedSlice)
 	require.IsType(t, Slice{}, sliceResult)
-	assert.Equal(t, 2, sliceResult.Len())
+	assert.Equal(t, Slice{"x", "y"}, sliceResult)
 }
 
 // TestIntrospection covers the package-level Is* type predicates for both the

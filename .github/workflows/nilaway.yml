@@ -21,6 +21,8 @@ jobs:
       with:
         fetch-depth: 0
 
+    # setup-go sets GOTOOLCHAIN=local, so the runner must satisfy go.mod exactly; a pinned
+    # "1.26.x" resolves to the runner's cached 1.26.9 and refuses any newer directive.
     - name: Set up Go
       uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
       with:

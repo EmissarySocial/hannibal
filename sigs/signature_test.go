@@ -7,17 +7,22 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+// testString is the base64 signature value used by the ParseSignature tests
 var testString string
+
+// testBytes is testString, decoded
 var testBytes []byte
 
+// init decodes testString into testBytes
 func init() {
 	testString = "Y2FiYWIxNGRiZDk4ZA=="
 	testBytes, _ = base64.StdEncoding.DecodeString(testString)
 }
 
+// TestParseSignature_IETF confirms ParseSignature reads every field of the draft-cavage hs2019 example
 func TestParseSignature_IETF(t *testing.T) {
 
-	// From: https://datatracker.ietf.org/doc/html/draft-cavage-http-signatures-05#section-4.1.1
+	// From: https://datatracker.ietf.org/doc/html/draft-cavage-http-signatures-12#section-3.1.2
 	headerValue := `keyId="rsa-key-1",algorithm="hs2019",
 	headers="(request-target) (created) host digest content-length",
 	signature="` + testString + `"`
@@ -31,6 +36,7 @@ func TestParseSignature_IETF(t *testing.T) {
 	require.Equal(t, testBytes, signature.Signature)
 }
 
+// TestParseSignature_Mastodon confirms ParseSignature reads a Mastodon-style header with no algorithm
 func TestParseSignature_Mastodon(t *testing.T) {
 
 	// From: https://docs.joinmastodon.org/spec/security/
@@ -45,6 +51,7 @@ func TestParseSignature_Mastodon(t *testing.T) {
 	require.Equal(t, testBytes, signature.Signature)
 }
 
+// TestParseSignature_MastodonWithWhitespace confirms ParseSignature ignores spaces after the commas
 func TestParseSignature_MastodonWithWhitespace(t *testing.T) {
 
 	// From: https://docs.joinmastodon.org/spec/security/
