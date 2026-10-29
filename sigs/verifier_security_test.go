@@ -14,6 +14,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/benpate/derp"
 	"github.com/stretchr/testify/require"
 )
 
@@ -208,6 +209,21 @@ func TestVerify_Reject_MissingRequiredField(t *testing.T) {
 	_, err = Verify(request, rsaKeyFinder(privateKey),
 		VerifierFields(FieldRequestTarget, FieldHost, FieldDigest))
 	require.NotNil(t, err, "a signature missing a required field must be rejected")
+}
+
+// TestVerify_Reject_EmptyHeaders confirms the default verifier rejects a genuine signature whose
+// headers="" covers no fields at all
+func TestVerify_Reject_EmptyHeaders(t *testing.T) {
+
+	privateKey, err := rsa.GenerateKey(rand.Reader, 2048)
+	require.Nil(t, err)
+
+	// ParseSignature reads headers="" as one empty field name, so the required-fields rule must catch it
+	request := newSignedRequest(t, `{"hello":"world"}`, "rsa-key", privateKey, SignerFields(""))
+	require.Contains(t, request.Header.Get("Signature"), `headers=""`)
+
+	_, err = Verify(request, rsaKeyFinder(privateKey))
+	require.True(t, derp.IsForbidden(err), "a signature covering no fields must be rejected: %v", err)
 }
 
 // TestVerify_Reject_KeyFinderError confirms that a key-finder error aborts
