@@ -44,9 +44,8 @@ func TestGetAuthenticatedActor_Invalid(t *testing.T) {
 	require.Equal(t, "", actorID)
 }
 
-// TestWithSigner confirms the remote.Option produced by WithSigner signs an
-// outbound request, and that the resulting request verifies. This exercises the
-// full signer middleware -> verifier path.
+// TestWithSigner confirms the remote.Option produced by WithSigner signs an outbound request, copies
+// its Digest and Signature into the transaction, and that the signed request verifies
 func TestWithSigner(t *testing.T) {
 
 	privateKey, err := rsa.GenerateKey(rand.Reader, 2048)
@@ -71,6 +70,13 @@ func TestWithSigner(t *testing.T) {
 	// The middleware must have applied both headers.
 	require.NotEmpty(t, request.Header.Get("Signature"))
 	require.NotEmpty(t, request.Header.Get("Digest"))
+
+	// ...and copied the same values into the transaction.
+	transactionHeaders := txn.MarshalMap()["header"]
+	require.Equal(t, map[string]string{
+		"Digest":    request.Header.Get("Digest"),
+		"Signature": request.Header.Get("Signature"),
+	}, transactionHeaders)
 
 	// And the signed request must verify.
 	_, err = Verify(request, rsaKeyFinder(privateKey))

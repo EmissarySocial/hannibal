@@ -101,6 +101,43 @@ func TestAcceptsActivityPub(t *testing.T) {
 	}
 }
 
+// TestParseAcceptEntry covers the entry parser's contract directly, including the refusals that
+// acceptsActivityPub cannot see because a zero or negative quality never wins there.
+func TestParseAcceptEntry(t *testing.T) {
+
+	table := []struct {
+		name          string
+		text          string
+		expectRange   string
+		expectQuality float64
+		expectOK      bool
+	}{
+		{"bare media type", "application/activity+json", "application/activity+json", 1, true},
+		{"stated quality", "text/html;q=0.5", "text/html", 0.5, true},
+		{"smallest positive quality", "text/html;q=0.001", "text/html", 0.001, true},
+		{"quality above 1 is capped", "text/html;q=2", "text/html", 1, true},
+		{"media type is lowercased", "TEXT/HTML", "text/html", 1, true},
+		{"padding is trimmed", "  text/html ;  q=0.5 ", "text/html", 0.5, true},
+		{"malformed parameter keeps the default quality", "application/activity+json;;", "application/activity+json", 1, true},
+
+		// Refusals
+		{"q=0 is a refusal", "text/html;q=0", "", 0, false},
+		{"negative quality is a refusal", "text/html;q=-1", "", 0, false},
+		{"unparseable quality", "text/html;q=bogus", "", 0, false},
+		{"empty entry", "", "", 0, false},
+		{"parameters only", ";q=1", "", 0, false},
+	}
+
+	for _, test := range table {
+		t.Run(test.name, func(t *testing.T) {
+			entry, ok := parseAcceptEntry(test.text)
+			require.Equal(t, test.expectOK, ok, "entry: %q", test.text)
+			require.Equal(t, test.expectRange, entry.mediaRange, "entry: %q", test.text)
+			require.Equal(t, test.expectQuality, entry.quality, "entry: %q", test.text)
+		})
+	}
+}
+
 // TestSplitAcceptHeader covers the splitter's contract directly.
 func TestSplitAcceptHeader(t *testing.T) {
 

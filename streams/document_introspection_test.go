@@ -1,31 +1,54 @@
 package streams
 
 import (
+	"slices"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/assert"
 )
 
-// TestDocument_Introspection confirms each Is* predicate reports TRUE for a document wrapping its own
-// type. Each underlying value is exercised through exactly one predicate that should match.
+// TestDocument_Introspection confirms which Is* predicates report TRUE for each kind of value,
+// and that every other predicate reports FALSE.
 func TestDocument_Introspection(t *testing.T) {
 
-	// matches asserts that the named predicate is true for this value.
-	matches := func(name string, value any, predicate func(Document) bool) {
+	predicates := map[string]func(Document) bool{
+		"IsBool":   Document.IsBool,
+		"IsInt":    Document.IsInt,
+		"IsInt64":  Document.IsInt64,
+		"IsFloat":  Document.IsFloat,
+		"IsString": Document.IsString,
+		"IsMap":    Document.IsMap,
+		"IsSlice":  Document.IsSlice,
+		"IsNil":    Document.IsNil,
+	}
+
+	// matches asserts that exactly the named predicates are true for this value.
+	matches := func(name string, value any, expected ...string) {
 		t.Run(name, func(t *testing.T) {
-			assert.True(t, predicate(NewDocument(value)))
+			document := NewDocument(value)
+			for predicateName, predicate := range predicates {
+				assert.Equal(t, slices.Contains(expected, predicateName), predicate(document), predicateName)
+			}
 		})
 	}
 
-	matches("bool", true, Document.IsBool)
-	matches("int", 7, Document.IsInt)
-	matches("int64", int64(7), Document.IsInt64)
-	matches("float", 3.14, Document.IsFloat)
-	matches("string", "hello", Document.IsString)
-	matches("map", map[string]any{"a": 1}, Document.IsMap)
-	matches("slice", []any{1, 2}, Document.IsSlice)
-	matches("nil", nil, Document.IsNil)
+	matches("bool", true, "IsBool")
+	matches("int", 7, "IsInt", "IsInt64")
+	matches("int64", int64(7), "IsInt", "IsInt64")
+	matches("float", 3.14, "IsFloat")
+	matches("string", "hello", "IsString")
+	matches("map", map[string]any{"a": 1}, "IsMap")
+	matches("slice", []any{1, 2}, "IsSlice")
+	matches("nil", nil, "IsNil")
+
+	// Zero values and empty containers also report IsNil, alongside their own type
+	matches("false", false, "IsBool", "IsNil")
+	matches("zero int", 0, "IsInt", "IsInt64", "IsNil")
+	matches("zero float", 0.0, "IsFloat", "IsNil")
+	matches("empty string", "", "IsString", "IsNil")
+	matches("empty map", map[string]any{}, "IsMap", "IsNil")
+	matches("empty slice", []any{}, "IsSlice", "IsNil")
 }
 
 // TestDocument_NilNotNil confirms IsNil/NotNil/NotEmpty/IsEmpty agree about

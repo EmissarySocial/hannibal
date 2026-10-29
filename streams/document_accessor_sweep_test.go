@@ -63,6 +63,7 @@ func TestDocument_AccessorSweep_Documents(t *testing.T) {
 	}
 
 	check("context", Document.AtContext)
+	check("actor", Document.Actor)
 	check("attachment", Document.Attachment)
 	check("audience", Document.Audience)
 	check("bcc", Document.BCC)

@@ -278,12 +278,38 @@ func TestDocument_FirstImageAttachment(t *testing.T) {
 	})
 }
 
-// TestDocument_IconImageHybrids confirms IconOrImage / ImageOrIcon prefer their
-// namesake property, then fall back to the other property.
+// TestDocument_IconImageHybrids confirms the order in which IconOrImage (icon, image, attachment)
+// and ImageOrIcon (image, attachment, icon) fall back, and that each returns a nil Image when all are missing.
 func TestDocument_IconImageHybrids(t *testing.T) {
 
 	icon := map[string]any{vocab.PropertyURL: "https://example.com/icon.png"}
 	image := map[string]any{vocab.PropertyURL: "https://example.com/image.png"}
+	attachment := []any{
+		map[string]any{vocab.PropertyMediaType: "image/png", vocab.PropertyURL: "https://example.com/attachment.png"},
+	}
+
+	t.Run("IconOrImage prefers image over attachment", func(t *testing.T) {
+		doc := NewDocument(map[string]any{vocab.PropertyImage: image, vocab.PropertyAttachment: attachment})
+		assert.Equal(t, "https://example.com/image.png", doc.IconOrImage().URL())
+	})
+
+	t.Run("IconOrImage falls back to attachment", func(t *testing.T) {
+		doc := NewDocument(map[string]any{vocab.PropertyAttachment: attachment})
+		assert.Equal(t, "https://example.com/attachment.png", doc.IconOrImage().URL())
+	})
+
+	t.Run("IconOrImage with nothing -> nil image", func(t *testing.T) {
+		assert.True(t, NewDocument(map[string]any{}).IconOrImage().IsNil())
+	})
+
+	t.Run("ImageOrIcon prefers attachment over icon", func(t *testing.T) {
+		doc := NewDocument(map[string]any{vocab.PropertyIcon: icon, vocab.PropertyAttachment: attachment})
+		assert.Equal(t, "https://example.com/attachment.png", doc.ImageOrIcon().URL())
+	})
+
+	t.Run("ImageOrIcon with nothing -> nil image", func(t *testing.T) {
+		assert.True(t, NewDocument(map[string]any{}).ImageOrIcon().IsNil())
+	})
 
 	t.Run("IconOrImage prefers icon", func(t *testing.T) {
 		doc := NewDocument(map[string]any{vocab.PropertyIcon: icon, vocab.PropertyImage: image})
@@ -354,8 +380,8 @@ func TestDocument_SummaryWithTagLinks(t *testing.T) {
 	})
 }
 
-// TestDocument_PublicAddressing confirms IsPublic / NotPublic detect the
-// well-known Public namespace in the "to" field.
+// TestDocument_PublicAddressing confirms IsPublic / NotPublic detect each of the three forms of
+// the Public namespace, in each of the four recipient fields.
 func TestDocument_PublicAddressing(t *testing.T) {
 
 	t.Run("public in 'to'", func(t *testing.T) {
@@ -365,6 +391,21 @@ func TestDocument_PublicAddressing(t *testing.T) {
 		assert.True(t, doc.IsPublic())
 		assert.False(t, doc.NotPublic())
 	})
+
+	// isPublic asserts that a document addressing this value through this field is public.
+	isPublic := func(field string, value any) {
+		t.Run("public in '"+field+"'", func(t *testing.T) {
+			doc := NewDocument(map[string]any{field: value})
+			assert.True(t, doc.IsPublic(), "%s: %v", field, value)
+		})
+	}
+
+	isPublic(vocab.PropertyCC, vocab.NamespaceActivityStreamsPublic)
+	isPublic(vocab.PropertyBTo, vocab.NamespaceActivityStreamsPublic)
+	isPublic(vocab.PropertyBCC, vocab.NamespaceActivityStreamsPublic)
+	isPublic(vocab.PropertyTo, vocab.NamespaceASPublic)
+	isPublic(vocab.PropertyTo, vocab.NamespacePublic)
+	isPublic(vocab.PropertyTo, []any{"https://example.com/users/alice", vocab.NamespaceASPublic})
 
 	t.Run("not public", func(t *testing.T) {
 		doc := NewDocument(map[string]any{
