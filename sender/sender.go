@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 
 	"github.com/benpate/derp"
+	"github.com/benpate/hannibal/delivery"
 	"github.com/benpate/hannibal/vocab"
 	"github.com/benpate/remote"
 	"github.com/benpate/remote/options"
@@ -113,12 +114,12 @@ func (sender *Sender) SendToAllRecipients(activity mapof.Any) queue.Result {
 	// Remove duplicate recipient inbox URLs
 	recipients = ranges.Unique(recipients)
 
-	// Strip BCC and BTo fields before sending
-	activity.Remove(vocab.PropertyBCC)
-	activity.Remove(vocab.PropertyBTo)
+	// RULE: No recipient may see who was blind-copied. An embedded object can name blind
+	// recipients of its own, so `bto` and `bcc` are removed at every level, from a copy.
+	stripped := delivery.StripBlindRecipients(activity)
 
 	// Serialize the activity once, so every recipient's task shares the same string
-	serialized, err := json.Marshal(activity)
+	serialized, err := json.Marshal(stripped)
 
 	if err != nil {
 		return queue.Failure(derp.Wrap(err, location, "Unable to serialize outbound activity"))

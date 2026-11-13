@@ -117,6 +117,41 @@ func TestSendToAllRecipients_StripsBccBto(t *testing.T) {
 	assert.NotContains(t, sentActivity, vocab.PropertyBTo)
 }
 
+// TestSendToAllRecipients_StripsNestedBlindRecipients confirms that blind recipients named on an
+// embedded object never reach the wire, and that the caller's activity is left as it was
+func TestSendToAllRecipients_StripsNestedBlindRecipients(t *testing.T) {
+
+	q, recorder := newRecordingQueue()
+	sender := New(testLocator{}, q)
+
+	object := map[string]any{
+		vocab.PropertyType: vocab.ObjectTypeNote,
+		vocab.PropertyBCC:  []any{"https://secret.example.com/"},
+		vocab.PropertyInReplyTo: map[string]any{
+			vocab.PropertyBTo: "https://secret.example.com/",
+		},
+	}
+
+	activity := mapof.Any{
+		vocab.PropertyActor:  "https://test.actor.social",
+		vocab.PropertyTo:     "https://test.actor.social/",
+		vocab.PropertyObject: object,
+	}
+
+	result := sender.SendToAllRecipients(activity)
+	require.Equal(t, queue.ResultStatusSuccess, result.Status)
+
+	require.NotEmpty(t, recorder.tasks)
+	body := recorder.tasks[0].Arguments.GetString("body")
+	assert.NotContains(t, body, "secret.example.com")
+	assert.NotContains(t, body, `"bcc"`)
+	assert.NotContains(t, body, `"bto"`)
+	assert.Contains(t, body, `"type":"Note"`)
+
+	// The strip works on a copy
+	assert.Contains(t, object, vocab.PropertyBCC)
+}
+
 // TestSendToAllRecipients_Body confirms every recipient's task carries the same serialized body, and no activity map.
 func TestSendToAllRecipients_Body(t *testing.T) {
 
