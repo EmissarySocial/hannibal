@@ -1,6 +1,6 @@
 # hannibal — Notes for AI Agents
 
-Hannibal is a Go ActivityPub library, layered roughly like the spec itself: [streams](streams/) and [property](property/) wrap JSON-LD data, [vocab](vocab/) holds the vocabulary constants, [sigs](sigs/) signs and verifies HTTP requests, [router](router/) and [validator](validator/) receive inbound activities, [outbox](outbox/) and [sender](sender/) deliver outbound ones, [collection](collection/) serves and [collections](collections/) traverses AS2 collections, and [clients](clients/) provides stackable `streams.Client` implementations. See [README.md](README.md) for the overview; [datetime/AGENTS.md](datetime/AGENTS.md) has its own notes.
+Hannibal is a Go ActivityPub library, layered roughly like the spec itself: [streams](streams/) and [property](property/) wrap JSON-LD data, [vocab](vocab/) holds the vocabulary constants, [sigs](sigs/) signs and verifies HTTP requests, [router](router/) and [validator](validator/) receive inbound activities, [outbox](outbox/), [sender](sender/) and [delivery](delivery/) deliver outbound ones, [collection](collection/) serves and [collections](collections/) traverses AS2 collections, and [clients](clients/) provides stackable `streams.Client` implementations. See [README.md](README.md) for the overview; [datetime/AGENTS.md](datetime/AGENTS.md) has its own notes.
 
 ## streams.Document shares live data — Map() and Object() are not clones
 
@@ -49,6 +49,14 @@ Anything bound through it skips the Carpool: its options make every load carry o
 ## Reading text: String() and HTMLString() both sanitize
 
 `Document.String()` runs bluemonday `StrictPolicy` (strips ALL HTML) then unescapes entities; `HTMLString()` runs `UGCPolicy`. Both policies are built once and shared by every Document ([sanitize.go](streams/sanitize.go)), because building one per call cost up to 2,000 allocations per accessor; never call `AllowAttrs` or any other mutator on them — a caller that needs different rules builds its own policy. The unsanitized string is only reachable via the unexported `rawString` or the raw `Value()`. Federated content must go through one of the sanitizing accessors — never add an exported raw-string accessor.
+
+## `SummaryWithTagLinks` returns HTML, and walks the summary once
+
+`Summary()` is plain text with its entities already decoded, so `SummaryWithTagLinks` escapes it and adds links, and its result is HTML. Three rules keep it safe, and each replaced a defect a remote actor could trigger (emissary-specs HANNIBAL-CLEANUP §4.1):
+
+- **It walks the summary once and never searches text it has written.** The earlier version searched again after each replacement, and looped forever on a summary that named a tag twice.
+- **Letter case is compared one character at a time.** Lower-casing the whole string changes its byte length for some letters (the Kelvin sign is three bytes and folds to a one-byte `k`), so positions found in a lowered copy do not fit the original.
+- **Only an absolute `http` or `https` address becomes a link,** and the address and the tag's name are both escaped. Only the first `maxLinkedTags` tags are searched for.
 
 ## `URL()` reads a list of Links the way Mastodon does
 
@@ -106,6 +114,22 @@ Both delivery paths inherit `remote`'s default refusal to connect to private/loo
 - **`SendToAllRecipients` strips `bto`/`bcc` before fan-out** (per the AP spec); `outbox` builders like `SendCreate` embed `document.Map()` — the live map — into the wire message.
 - **A single-recipient task carries its payload as `body`, a JSON string serialized once per fan-out.** `SendToSingleRecipient` POSTs `body` byte-for-byte, so the signature's digest covers exactly what was queued. Tasks queued by older versions carry an `activity` map instead, and that path serializes it as before. **Never remove the `activity` fallback:** a task can sit in a stored queue for hours of retries, or indefinitely on a server that was down, and removing the fallback would make those tasks fail. A task with neither is a permanent `Failure`, not a POST of `{}`.
 - **An older process must never read a `body`-only task.** Its handler would miss `activity`, POST `{}`, get a 4xx, and drop the delivery for good. Upgrade every process sharing a queue at once, and do not roll back below this version while delivery tasks are still queued.
+
+## delivery is the third outbound path, and it never adds a recipient
+
+[delivery](delivery/) is the pipeline that Emissary's outbox is moving to. Its fan-out is a stack of `iter.Seq` stages, and it must stay that way: no channels, no goroutines, no recursion, and no stage that feeds an earlier one.
+
+- **Addressing belongs to the application.** The package delivers to whoever the activity names. It does not add a followers collection to a `Delete`, or a parent's author to a reply.
+- **Every delivery goes to the actor's own `inbox`.** `PreferredInbox` and `sharedInbox` are never read here. A shared inbox cannot carry a followers-only or circle-only post, so the application chose one request per recipient.
+- **An inbox on a different origin than its actor is refused, and reported.** Without that check, a crowd of fake followers could each name a victim's server as their inbox. The check is `uri.NotSameOrigin`, which compares scheme, host and port. `HostOf` is a different thing: it is the key a host's health is kept under, it drops the port, and it must never be used for this check.
+- **The package imports no circuit breaker, and the send task reports nothing.** The application passes `WithBlockedHosts` for the fan-out and `WithRemoteOptions` for each request. An option such as floodgate's records every outcome itself, so `Pipeline.result` only reads the error. Adding a report there would count each outcome twice, and re-recording a breaker's own 429 would move its pause later on every waiting delivery.
+- **`result` reads status codes, whoever sent them.** 423 means "this host gets nothing" and ends the task quietly; 429 reschedules for the wait the error names, capped at one hour; a 5xx or a timeout is retried. A breaker's refusal and a server's answer take the same path.
+- **A remote collection is never expanded.** It stands for its owner, who is looked for among the authors of the objects the activity replies to and the people it names, in the same send task. The search loads at most `maxOwnerCandidates` actors, because those documents come from other servers.
+- **`StripBlindRecipients` walks by reflection, on a copy.** A database driver's own array and map types match no type switch on `[]any` or `map[string]any`, and one of them carrying a `bcc` through would disclose it. The proof is attached after the strip, because a proof made over the blind recipients fails once they are gone.
+- **A collection that cannot be read fails the whole fan-out before anything is queued.** A partial list followed by a retry would deliver to some people twice and never tell which.
+- **Send tasks are signed by `activity id + recipient`,** so a retried fan-out queues no second task for a recipient whose first is still waiting. The queue frees a signature when its task finishes, so a recipient already delivered to is sent a second copy; receiving servers drop a repeated activity id.
+- **The digests in a send task are not read yet.** `sigs.Sign` computes `Digest` from the body on every attempt. The carried `digest` and `contentDigest` are there for when `sigs` can sign with RFC 9421, which it cannot today.
+- **A 429 with no `Retry-After` reschedules the delivery for a minute,** because `derp.IsTooManyRequests` answers one minute when the response names no wait. It was an hour before derp changed its default on 2026-11-12.
 
 ## Timestamp formats: AS2 in datetime, HTTP Date in sigs
 
