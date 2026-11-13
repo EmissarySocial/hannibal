@@ -2,6 +2,8 @@ package streams
 
 import (
 	"encoding/json"
+	"html"
+	"strings"
 	"testing"
 
 	"github.com/benpate/derp"
@@ -343,4 +345,50 @@ func seedInteractionPolicyJSON(f *testing.F) {
 	f.Add([]byte(`{"canReply":{"automaticApproval":{"id":{"id":{"id":"x"}}}}}`), "x")
 	f.Add([]byte(`null`), "")
 	f.Add([]byte(`{`), "")
+}
+
+// FuzzSummaryWithTagLinks checks that linking tags always finishes, and that a document
+// with no usable tag returns its summary escaped and otherwise unchanged
+func FuzzSummaryWithTagLinks(f *testing.F) {
+
+	f.Add("hello #a and #a again", "#a", "https://example.com/t")
+	f.Add("k", "\u212a", "https://example.com/x")
+	f.Add("hi <b> &amp; #tag", "#tag", "javascript:alert(1)")
+	f.Add("a\xffb", "\xff", "https://example.com/t")
+	f.Add("", "", "")
+
+	f.Fuzz(func(t *testing.T, summary string, name string, href string) {
+
+		document := NewDocument(map[string]any{
+			vocab.PropertySummary: summary,
+			vocab.PropertyTag: []any{
+				map[string]any{vocab.PropertyName: name, vocab.PropertyHref: href},
+			},
+		})
+
+		linked := document.SummaryWithTagLinks()
+
+		// Without the tag, the result is the escaped summary
+		plain := NewDocument(map[string]any{vocab.PropertySummary: summary}).SummaryWithTagLinks()
+		require.Equal(t, html.EscapeString(document.Summary()), plain)
+
+		// RULE: The only markup in the result is the links that were added
+		withoutLinks := strings.ReplaceAll(linked, "</a>", "")
+
+		for {
+			start := strings.Index(withoutLinks, `<a href="`)
+
+			if start < 0 {
+				break
+			}
+
+			end := strings.Index(withoutLinks[start:], `" target="_blank">`)
+			require.GreaterOrEqual(t, end, 0)
+			require.NotContains(t, withoutLinks[start+len(`<a href="`):start+end], `"`)
+			withoutLinks = withoutLinks[:start] + withoutLinks[start+end+len(`" target="_blank">`):]
+		}
+
+		require.NotContains(t, withoutLinks, "<")
+		require.NotContains(t, withoutLinks, ">")
+	})
 }

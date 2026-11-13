@@ -2,6 +2,7 @@ package streams
 
 import (
 	"net/http"
+	"strconv"
 	"testing"
 	"time"
 
@@ -378,6 +379,137 @@ func TestDocument_SummaryWithTagLinks(t *testing.T) {
 		})
 		assert.Equal(t, "Hello #golang fans", doc.SummaryWithTagLinks())
 	})
+}
+
+// tagLinkDocument returns a document with a summary and one tag for each name/href pair
+func tagLinkDocument(summary string, namesAndHrefs ...string) Document {
+
+	tags := make([]any, 0, len(namesAndHrefs)/2)
+
+	for index := 0; index+1 < len(namesAndHrefs); index += 2 {
+		tags = append(tags, map[string]any{
+			vocab.PropertyName: namesAndHrefs[index],
+			vocab.PropertyHref: namesAndHrefs[index+1],
+		})
+	}
+
+	return NewDocument(map[string]any{
+		vocab.PropertySummary: summary,
+		vocab.PropertyTag:     tags,
+	})
+}
+
+// TestDocument_SummaryWithTagLinks_RepeatedTag pins BUG: a tag named twice in the summary
+// used to loop forever, because the search position was relative and was used as absolute
+func TestDocument_SummaryWithTagLinks_RepeatedTag(t *testing.T) {
+
+	doc := tagLinkDocument("hello #a and #a again", "#a", "https://example.com/t")
+	link := `<a href="https://example.com/t" target="_blank">#a</a>`
+
+	require.Equal(t, "hello "+link+" and "+link+" again", doc.SummaryWithTagLinks())
+}
+
+// TestDocument_SummaryWithTagLinks_CaseFolding confirms that a tag matches in any letter case,
+// including letters whose two cases take a different number of bytes
+func TestDocument_SummaryWithTagLinks_CaseFolding(t *testing.T) {
+
+	// Plain ASCII, in a different case
+	doc := tagLinkDocument("Hello #GoLang fans", "#golang", "https://example.com/t")
+	require.Equal(t, `Hello <a href="https://example.com/t" target="_blank">#golang</a> fans`, doc.SummaryWithTagLinks())
+
+	// The Kelvin sign is three bytes and folds to "k", which is one. This used to panic.
+	doc = tagLinkDocument("k", "\u212a", "https://example.com/x")
+	require.Equal(t, `<a href="https://example.com/x" target="_blank">`+"\u212a"+`</a>`, doc.SummaryWithTagLinks())
+
+	doc = tagLinkDocument("a \u212a b", "k", "https://example.com/x")
+	require.Equal(t, `a <a href="https://example.com/x" target="_blank">k</a> b`, doc.SummaryWithTagLinks())
+}
+
+// TestDocument_SummaryWithTagLinks_EscapesText confirms that the summary's own text is escaped,
+// because the result is HTML and the summary is plain text
+func TestDocument_SummaryWithTagLinks_EscapesText(t *testing.T) {
+
+	doc := tagLinkDocument("hi #tag &lt;img src=x onerror=alert(1)&gt;", "#tag", "https://example.com/t")
+
+	expected := `hi <a href="https://example.com/t" target="_blank">#tag</a> &lt;img src=x onerror=alert(1)&gt;`
+	require.Equal(t, expected, doc.SummaryWithTagLinks())
+}
+
+// TestDocument_SummaryWithTagLinks_EscapesLink confirms that a tag cannot break out of the
+// link's attribute or its text
+func TestDocument_SummaryWithTagLinks_EscapesLink(t *testing.T) {
+
+	doc := tagLinkDocument(`see a"b here`, `a"b`, `https://example.com/t?x=1&y="2"`)
+
+	expected := `see <a href="https://example.com/t?x=1&amp;y=&#34;2&#34;" target="_blank">a&#34;b</a> here`
+	require.Equal(t, expected, doc.SummaryWithTagLinks())
+}
+
+// TestDocument_SummaryWithTagLinks_UnsafeHref confirms that only a web address becomes a link
+func TestDocument_SummaryWithTagLinks_UnsafeHref(t *testing.T) {
+
+	for _, href := range []string{
+		"javascript:alert(1)",
+		"JavaScript:alert(1)//",
+		"data:text/html,<script>alert(1)</script>",
+		"vbscript:x",
+		"//example.com/no-scheme",
+		"/relative",
+		"https://",
+		"not a url",
+		"http://exa mple.com/",
+	} {
+		doc := tagLinkDocument("hello #tag", "#tag", href)
+		require.Equal(t, "hello #tag", doc.SummaryWithTagLinks(), "href: %s", href)
+	}
+}
+
+// TestDocument_SummaryWithTagLinks_LongestTagWins confirms that when two tags match at the
+// same place, the longer one is linked
+func TestDocument_SummaryWithTagLinks_LongestTagWins(t *testing.T) {
+
+	doc := tagLinkDocument("I like #golang", "#go", "https://example.com/go", "#golang", "https://example.com/golang")
+	require.Equal(t, `I like <a href="https://example.com/golang" target="_blank">#golang</a>`, doc.SummaryWithTagLinks())
+
+	// The shorter tag still links where the longer one does not match
+	doc = tagLinkDocument("#go and #golang", "#go", "https://example.com/go", "#golang", "https://example.com/golang")
+	expected := `<a href="https://example.com/go" target="_blank">#go</a> and <a href="https://example.com/golang" target="_blank">#golang</a>`
+	require.Equal(t, expected, doc.SummaryWithTagLinks())
+}
+
+// TestDocument_SummaryWithTagLinks_NeverRelinksALink confirms that a tag whose name appears
+// inside another tag's link is not linked there
+func TestDocument_SummaryWithTagLinks_NeverRelinksALink(t *testing.T) {
+
+	doc := tagLinkDocument("#first", "#first", "https://example.com/href", "href", "https://example.com/second", "a", "https://example.com/third")
+	require.Equal(t, `<a href="https://example.com/href" target="_blank">#first</a>`, doc.SummaryWithTagLinks())
+}
+
+// TestDocument_SummaryWithTagLinks_TagLimit confirms that tags past the limit are left as text
+func TestDocument_SummaryWithTagLinks_TagLimit(t *testing.T) {
+
+	namesAndHrefs := make([]string, 0, 2*(maxLinkedTags+1))
+
+	for index := range maxLinkedTags {
+		namesAndHrefs = append(namesAndHrefs, "#filler"+strconv.Itoa(index)+"x", "https://example.com/filler")
+	}
+
+	namesAndHrefs = append(namesAndHrefs, "#last", "https://example.com/last")
+
+	doc := tagLinkDocument("#filler0x then #last", namesAndHrefs...)
+	require.Equal(t, `<a href="https://example.com/filler" target="_blank">#filler0x</a> then #last`, doc.SummaryWithTagLinks())
+}
+
+// TestDocument_SummaryWithTagLinks_OddInput confirms that empty names and broken text do no harm
+func TestDocument_SummaryWithTagLinks_OddInput(t *testing.T) {
+
+	// A tag with no name matches nothing
+	doc := tagLinkDocument("hello", "", "https://example.com/t")
+	require.Equal(t, "hello", doc.SummaryWithTagLinks())
+
+	// Bytes that are not valid UTF-8 pass through, and the scan still ends
+	doc = tagLinkDocument("a\xffb #t", "#t", "https://example.com/t")
+	require.Equal(t, "a\xffb "+`<a href="https://example.com/t" target="_blank">#t</a>`, doc.SummaryWithTagLinks())
 }
 
 // TestDocument_PublicAddressing confirms IsPublic / NotPublic detect each of the three forms of

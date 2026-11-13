@@ -1,9 +1,13 @@
 package streams
 
 import (
+	"html"
 	"mime"
+	"net/url"
 	"strconv"
 	"strings"
+	"unicode"
+	"unicode/utf8"
 
 	"github.com/benpate/hannibal/vocab"
 	"github.com/benpate/rosetta/sliceof"
@@ -148,7 +152,8 @@ func (document Document) HasSummary() bool {
 	return document.Summary() != ""
 }
 
-// SummaryWithTagLinks returns the document's summary with any "tag" mentions converted to HTML links
+// SummaryWithTagLinks returns the document's summary as HTML, with each "tag" that it mentions
+// made into a link. The summary's own text is escaped, and only web addresses are linked.
 func (document Document) SummaryWithTagLinks() string {
 
 	summary := document.Summary()
@@ -157,38 +162,146 @@ func (document Document) SummaryWithTagLinks() string {
 		return ""
 	}
 
+	links := document.tagLinks()
+
+	// Walk the summary once. Text that has been written is never searched again, so a tag
+	// cannot match inside a link, and every step moves forward.
+	var result strings.Builder
+	textStart := 0
+
+	for position := 0; position < len(summary); {
+
+		link, matchLength := longestTagLink(summary[position:], links)
+
+		// No tag begins here, so step over one character
+		if matchLength == 0 {
+			_, size := utf8.DecodeRuneInString(summary[position:])
+			position += size
+			continue
+		}
+
+		// RULE: The summary is plain text and the result is HTML, so the text is escaped
+		result.WriteString(html.EscapeString(summary[textStart:position]))
+		result.WriteString(link.anchor)
+
+		position += matchLength
+		textStart = position
+	}
+
+	result.WriteString(html.EscapeString(summary[textStart:]))
+
+	return result.String()
+}
+
+// tagLink is one tag that SummaryWithTagLinks looks for, with the link that replaces it
+type tagLink struct {
+	name   string // The tag's name, as it is searched for in the summary
+	anchor string // The finished HTML link, already escaped
+}
+
+// tagLinks returns a link for each of the document's tags that has a name and a web address
+func (document Document) tagLinks() []tagLink {
+
+	result := make([]tagLink, 0)
+
 	for tag := range document.Tag().Range() {
+
+		// RULE: The tags come from another server, so only the first few are searched for
+		if len(result) >= maxLinkedTags {
+			break
+		}
+
+		name := tag.Name()
 		href := tag.Href()
 
-		if href == "" {
+		if (name == "") || !isWebAddress(href) {
 			continue
 		}
 
-		tagName := tag.Name()
-		tagNameLength := len(tagName)
+		result = append(result, tagLink{
+			name:   name,
+			anchor: `<a href="` + html.EscapeString(href) + `" target="_blank">` + html.EscapeString(name) + `</a>`,
+		})
+	}
 
-		if tagNameLength == 0 {
-			continue
-		}
+	return result
+}
 
-		for startPosition := 0; ; {
+// isWebAddress returns TRUE if a value is an absolute http or https URL with a host
+func isWebAddress(value string) bool {
 
-			index := indexOfNoCase(summary, tagName, startPosition)
+	parsed, err := url.Parse(value)
 
-			if index < 0 {
-				break
-			}
+	if err != nil {
+		return false
+	}
 
-			tagLink := `<a href="` + href + `" target="_blank">` + tagName + `</a>`
-			tagLinkLength := len(tagLink)
+	// RULE: Any other scheme, such as `javascript:`, must never become a link
+	if (parsed.Scheme != "http") && (parsed.Scheme != "https") {
+		return false
+	}
 
-			summary = summary[:index] + tagLink + summary[index+tagNameLength:]
+	return parsed.Host != ""
+}
 
-			startPosition = index + tagLinkLength
+// longestTagLink returns the link whose name begins the text, in any letter case, and the number
+// of bytes of text it matched. When several match, the longest wins. It returns zero for no match.
+func longestTagLink(text string, links []tagLink) (tagLink, int) {
+
+	var result tagLink
+	longest := 0
+
+	for _, link := range links {
+		if matchLength := foldedPrefixLength(text, link.name); matchLength > longest {
+			result = link
+			longest = matchLength
 		}
 	}
 
-	return summary
+	return result, longest
+}
+
+// foldedPrefixLength returns the number of bytes at the start of the text that equal the prefix
+// when letter case is ignored, or zero if the text does not begin with it
+func foldedPrefixLength(text string, prefix string) int {
+
+	position := 0
+
+	// Compare one character at a time. Two cases of a letter can take a different number of
+	// bytes, so the length is counted in the text and never taken from the prefix.
+	for _, expected := range prefix {
+
+		if position >= len(text) {
+			return 0
+		}
+
+		actual, size := utf8.DecodeRuneInString(text[position:])
+
+		if !equalFoldRune(actual, expected) {
+			return 0
+		}
+
+		position += size
+	}
+
+	return position
+}
+
+// equalFoldRune returns TRUE if two characters are the same letter in any case
+func equalFoldRune(first rune, second rune) bool {
+
+	if first == second {
+		return true
+	}
+
+	// SimpleFold steps through every case of a letter and then returns to the start
+	for folded := unicode.SimpleFold(first); folded != first; folded = unicode.SimpleFold(folded) {
+		if folded == second {
+			return true
+		}
+	}
+
+	return false
 }
 
 /******************************************
