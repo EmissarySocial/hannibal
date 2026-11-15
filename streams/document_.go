@@ -41,6 +41,24 @@ func NewDocument(value any, options ...DocumentOption) Document {
 	return result
 }
 
+// ParseDocument reads a Document from its JSON form, which may be an object, a list, or a
+// single value such as a URL. Like NewDocument, it loads nothing from the network unless an
+// option gives it a Client.
+func ParseDocument(data []byte, options ...DocumentOption) (Document, error) {
+
+	const location = "hannibal.streams.ParseDocument"
+
+	result := NilDocument(options...)
+
+	// RULE: The error carries no status, because only the caller knows whether the JSON came
+	// from a request, which is the sender's mistake, or from another server's response
+	if err := result.UnmarshalJSON(data); err != nil {
+		return NilDocument(), derp.Wrap(err, location, "Unable to parse JSON")
+	}
+
+	return result, nil
+}
+
 // NilDocument returns a new, empty Document.
 func NilDocument(options ...DocumentOption) Document {
 	return NewDocument(nil, options...)
