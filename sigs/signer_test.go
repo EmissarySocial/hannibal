@@ -48,7 +48,7 @@ func TestMakePlaintext(t *testing.T) {
 	request.Header.Set("Content-Type", "text/plain")
 
 	signature := NewSignature()
-	result := makePlaintext(request, signature, FieldRequestTarget, FieldHost, FieldDate, FieldDigest)
+	result := makePlaintext(request, signature, "", FieldRequestTarget, FieldHost, FieldDate, FieldDigest)
 	expected := removeTabs(
 		`(request-target): get /something?test=true
 		host: example.com
@@ -67,7 +67,7 @@ func TestMakePlaintext_Alternate(t *testing.T) {
 	request.Header.Set("Content-Type", "text/plain")
 
 	signature := NewSignature()
-	result := makePlaintext(request, signature, FieldRequestTarget, FieldHost, "Content-Type")
+	result := makePlaintext(request, signature, "", FieldRequestTarget, FieldHost, "Content-Type")
 	expected := removeTabs(
 		`(request-target): get /something?test=true
 		host: example.com

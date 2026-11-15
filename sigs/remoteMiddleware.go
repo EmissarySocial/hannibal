@@ -7,18 +7,20 @@ import (
 	"github.com/benpate/remote"
 )
 
-// WithSigner is a remote.Option that signs an outbound HTTP request
+// WithSigner is a remote.Option that signs an outbound HTTP request, and refuses to send a
+// request that its key cannot sign
 func WithSigner(signer Signer) remote.Option {
 
 	const location = "hannibal.sigs.WithSigner"
 
 	return remote.Option{
 
-		ModifyRequest: func(txn *remote.Transaction, request *http.Request) *http.Response {
+		ModifyRequest: func(txn *remote.Transaction, request *http.Request) (*http.Response, error) {
 
-			// Sign the outbound request
+			// RULE: A request that cannot be signed is never sent. The refusal reads as a client
+			// error so that a caller does not retry it: a key that cannot sign now will not sign later.
 			if err := signer.Sign(request); err != nil {
-				derp.Report(derp.Wrap(err, location, "Error signing request"))
+				return nil, derp.Wrap(err, location, "Request refused, because it cannot be signed", "keyID: "+signer.PublicKeyID, derp.WithBadRequest())
 			}
 
 			// If exists, write the Digest back into the transaction (for serialization, et al)
@@ -33,7 +35,7 @@ func WithSigner(signer Signer) remote.Option {
 
 			// Nil response means that we are still sending the request to the remote server
 			// instead of replacing it with a new request.
-			return nil
+			return nil, nil
 		},
 	}
 }

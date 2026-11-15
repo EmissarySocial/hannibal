@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/benpate/derp"
+	"github.com/benpate/re"
 	"github.com/benpate/rosetta/slice"
 	"github.com/rs/zerolog/log"
 )
@@ -22,6 +23,8 @@ type Verifier struct {
 	Timeout         int             // Number of seconds before signatures are expired. Default is 43200 seconds (12 hours).
 	CheckDigest     bool            // If true, then the verifier will check the Digest header.  Default is true.
 	RefreshKey      PublicKeyFinder // If present, this is consulted when a signature fails, to detect a rotated key.  Default is nil.
+	MaxBodySize     int64           // Largest body that the Digest check reads. Default is re.DefaultMaximum.
+	Hostname        string          // If set, the host that requests are signed for. Default is the request's own Host.
 }
 
 // NewVerifier returns a fully initialized Verifier
@@ -32,6 +35,7 @@ func NewVerifier(options ...VerifierOption) Verifier {
 		SignatureHashes: []crypto.Hash{crypto.SHA256, crypto.SHA512},
 		Timeout:         12 * 60 * 60, // 12 hours
 		CheckDigest:     true,
+		MaxBodySize:     re.DefaultMaximum,
 	}
 	result.Use(options...)
 	return result
@@ -85,9 +89,16 @@ func (verifier *Verifier) Verify(request *http.Request, keyFinder PublicKeyFinde
 	// Verify the request date
 	if verifier.Timeout > 0 {
 
-		// But, allow "empty" date headers while rejecting invalid ones.
-		// This is okay because the sender may not include the (date) in the signature.
-		if dateString := request.Header.Get(FieldDate); dateString != "" {
+		dateString := request.Header.Get(FieldDate)
+
+		// RULE: A verifier that requires the date in the signature requires the header too.
+		// Otherwise a signature made over an empty date would never expire.
+		if (dateString == "") && slice.Contains(verifier.Fields, FieldDate) {
+			return Signature{}, derp.Forbidden(location, "Request must include a Date header")
+		}
+
+		// An empty date is allowed only when the verifier does not require the sender to sign it
+		if dateString != "" {
 
 			date, err := parseDateHeader(dateString)
 
@@ -95,15 +106,24 @@ func (verifier *Verifier) Verify(request *http.Request, keyFinder PublicKeyFinde
 				return Signature{}, derp.Wrap(err, location, "Invalid Date header.  Must match 'Mon, 02 Jan 2006 15:04:05 GMT'")
 			}
 
-			if date.Unix() < time.Now().Add(-1*time.Duration(verifier.Timeout)*time.Second).Unix() {
+			window := time.Duration(verifier.Timeout) * time.Second
+			now := time.Now()
+
+			if date.Before(now.Add(-window)) {
 				return Signature{}, derp.Forbidden(location, "Request date has expired. Must be within the last "+strconv.Itoa(verifier.Timeout)+" seconds")
+			}
+
+			// RULE: A date in the future is refused too, or a sender could make a signature that
+			// stays valid for as long as it likes
+			if date.After(now.Add(window)) {
+				return Signature{}, derp.Forbidden(location, "Request date is in the future. Must be within the next "+strconv.Itoa(verifier.Timeout)+" seconds")
 			}
 		}
 	}
 
 	// Verify the body Digest (default behavior)
 	if verifier.CheckDigest {
-		if err := VerifyDigest(request, verifier.BodyDigests...); err != nil {
+		if err := verifyDigest(request, verifier.maxBodySize(), verifier.BodyDigests...); err != nil {
 			return Signature{}, derp.Wrap(err, location, "Error verifying body digest")
 		}
 	}
@@ -177,6 +197,16 @@ func (verifier *Verifier) Verify(request *http.Request, keyFinder PublicKeyFinde
 	return signature, nil
 }
 
+// maxBodySize returns the largest body that the Digest check reads
+func (verifier *Verifier) maxBodySize() int64 {
+
+	if verifier.MaxBodySize <= 0 {
+		return re.DefaultMaximum
+	}
+
+	return verifier.MaxBodySize
+}
+
 // verifyWithKey decodes a single PEM certificate and tries the Signature against each of the
 // Verifier's hash algorithms, returning nil if any one of them matches.
 func (verifier *Verifier) verifyWithKey(request *http.Request, signature Signature, certificate string) error {
@@ -197,7 +227,7 @@ func (verifier *Verifier) verifyWithKey(request *http.Request, signature Signatu
 
 	// Recreate the plaintext and digest used to make the Signature.  This reads HEADERS only, so it is
 	// safe to call a second time -- unlike the body Digest, which is checked once, further up.
-	plaintext := makePlaintext(request, signature, signature.Headers...)
+	plaintext := makePlaintext(request, signature, verifier.Hostname, signature.Headers...)
 
 	// Try each hash in order
 	for _, hash := range verifier.SignatureHashes {

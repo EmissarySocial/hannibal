@@ -15,6 +15,11 @@ import (
 // ApplyDigest calculates the digest of the body from a given
 // http.Request, then adds the digest to the Request's header.
 func ApplyDigest(request *http.Request, digestName string, digestFunc DigestFunc) error {
+	return applyDigest(request, re.DefaultMaximum, digestName, digestFunc)
+}
+
+// applyDigest adds a Digest header for a body of no more than maxBytes
+func applyDigest(request *http.Request, maxBytes int64, digestName string, digestFunc DigestFunc) error {
 
 	const location = "hannibal.sigs.ApplyDigest"
 
@@ -23,7 +28,7 @@ func ApplyDigest(request *http.Request, digestName string, digestFunc DigestFunc
 	}
 
 	// Retrieve the request body (in a replayable manner), capped to guard against an oversized body
-	body, err := re.ReadRequestBody(request, re.DefaultMaximum)
+	body, err := re.ReadRequestBody(request, maxBytes)
 
 	if err != nil {
 		return derp.Wrap(err, location, "Unable to read request body")
@@ -44,6 +49,11 @@ func ApplyDigest(request *http.Request, digestName string, digestFunc DigestFunc
 // VerifyDigest verifies that the digest in the http.Request header
 // matches the contents of the http.Request body.
 func VerifyDigest(request *http.Request, allowedHashes ...crypto.Hash) error {
+	return verifyDigest(request, re.DefaultMaximum, allowedHashes...)
+}
+
+// verifyDigest verifies the Digest header against a body of no more than maxBytes
+func verifyDigest(request *http.Request, maxBytes int64, allowedHashes ...crypto.Hash) error {
 
 	const location = "hannibal.sigs.VerifyDigest"
 
@@ -53,7 +63,7 @@ func VerifyDigest(request *http.Request, allowedHashes ...crypto.Hash) error {
 	}
 
 	// Retrieve the request body (in a replayable manner), capped to guard against an oversized body
-	body, err := re.ReadRequestBody(request, re.DefaultMaximum)
+	body, err := re.ReadRequestBody(request, maxBytes)
 
 	if err != nil {
 		return derp.Wrap(err, location, "Unable to read request body")
@@ -62,8 +72,15 @@ func VerifyDigest(request *http.Request, allowedHashes ...crypto.Hash) error {
 	// Retrieve the digest(s) included in the HTTP Request
 	digestHeader := request.Header.Get(FieldDigest)
 
-	// If there is no digest header, then there is nothing to verify
 	if digestHeader == "" {
+
+		// RULE: A body with no digest is refused, whatever the method. Nothing else ties the
+		// body to the signature, so a signature made for an empty request would carry any body.
+		if len(body) > 0 {
+			return derp.Forbidden(location, "Request has a body, so it must include a Digest header")
+		}
+
+		// A request with no body has nothing to verify
 		return nil
 	}
 

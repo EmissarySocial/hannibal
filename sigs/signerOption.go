@@ -39,3 +39,11 @@ func SignerExpires(expires int64) SignerOption {
 		signer.Expires = expires
 	}
 }
+
+// SignerMaxBodySize sets the largest body, in bytes, that the Digest is computed over. Zero or
+// less restores the default. A larger body cannot be signed.
+func SignerMaxBodySize(maxBytes int64) SignerOption {
+	return func(signer *Signer) {
+		signer.MaxBodySize = maxBytes
+	}
+}

@@ -8,6 +8,7 @@ import (
 	"crypto/sha256"
 	"crypto/sha512"
 	"encoding/base64"
+	"fmt"
 	"hash"
 	"net/http"
 	"net/url"
@@ -15,6 +16,7 @@ import (
 	"time"
 
 	"github.com/benpate/derp"
+	"github.com/benpate/re"
 	"github.com/benpate/rosetta/slice"
 	"github.com/rs/zerolog/log"
 )
@@ -29,6 +31,7 @@ type Signer struct {
 	HS2019        bool
 	Created       int64
 	Expires       int64
+	MaxBodySize   int64 // The largest body, in bytes, that the Digest is computed over. Zero or less means the default.
 }
 
 // NewSigner returns a fully initialized Signer
@@ -44,6 +47,16 @@ func NewSigner(publicKeyID string, privateKey crypto.PrivateKey, options ...Sign
 	}
 	result.With(options...)
 	return result
+}
+
+// maxBodySize returns the largest body that the Digest is computed over
+func (signer *Signer) maxBodySize() int64 {
+
+	if signer.MaxBodySize <= 0 {
+		return re.DefaultMaximum
+	}
+
+	return signer.MaxBodySize
 }
 
 // Sign signs a given http.Request.  It is syntactic
@@ -72,9 +85,6 @@ func (signer *Signer) Sign(request *http.Request) error {
 		return derp.Wrap(err, location, "Error getting signature")
 	}
 
-	signature.Created = signer.Created
-	signature.Expires = signer.Expires
-
 	// Apply the signature to the request
 	request.Header.Set("Signature", signature.String())
 
@@ -90,6 +100,11 @@ func (signer *Signer) MakeSignature(request *http.Request) (Signature, error) {
 
 	signature := NewSignature()
 
+	// RULE: Set the times before the plaintext is built, because (created) and (expires) are
+	// signed from the Signature
+	signature.Created = signer.Created
+	signature.Expires = signer.Expires
+
 	// Only apply the digest if the "digest" field is in use
 	if slice.Contains(signer.Fields, FieldDigest) {
 
@@ -102,7 +117,7 @@ func (signer *Signer) MakeSignature(request *http.Request) (Signature, error) {
 		}
 
 		// Apply the Digest function to the body
-		if err := ApplyDigest(request, digestName, digestFunc); err != nil {
+		if err := applyDigest(request, signer.maxBodySize(), digestName, digestFunc); err != nil {
 			return Signature{}, derp.Wrap(err, location, "Error applying digest")
 		}
 	}
@@ -117,7 +132,7 @@ func (signer *Signer) MakeSignature(request *http.Request) (Signature, error) {
 	}
 
 	// Assemble the plaintext string from the configured request fields
-	plainText := makePlaintext(request, signature, signer.Fields...)
+	plainText := makePlaintext(request, signature, "", signer.Fields...)
 
 	// Create a digest of the plaintext string using the configured digest algorithm
 	digestText, err := makeSignatureHash(plainText, signer.SignatureHash)
@@ -146,13 +161,14 @@ func (signer *Signer) MakeSignature(request *http.Request) (Signature, error) {
  * Helper Functions
  ******************************************/
 
-// makePlaintext retrieves all fields from an HTTP request
-func makePlaintext(request *http.Request, signature Signature, fields ...string) string {
+// makePlaintext retrieves all fields from an HTTP request. hostname replaces the request's
+// Host when it is not empty, which only a verifier asks for.
+func makePlaintext(request *http.Request, signature Signature, hostname string, fields ...string) string {
 
 	resultSlice := make([]string, len(fields))
 
 	for index, field := range fields {
-		value := getField(request, signature, field)
+		value := getField(request, signature, hostname, field)
 		resultSlice[index] = strings.ToLower(field) + ": " + value
 	}
 
@@ -204,6 +220,12 @@ func makeSignedDigest(digest []byte, hash crypto.Hash, privateKey crypto.Private
 	switch typedValue := privateKey.(type) {
 
 	case *rsa.PrivateKey:
+
+		// NILCHECK: A nil key panics inside the standard library
+		if typedValue == nil {
+			return nil, derp.Internal(location, "RSA private key is nil")
+		}
+
 		resultBytes, err := rsa.SignPKCS1v15(rand.Reader, typedValue, hash, digest)
 		if err != nil {
 			return nil, derp.Wrap(err, location, "Error signing hash with RSA private key")
@@ -211,6 +233,12 @@ func makeSignedDigest(digest []byte, hash crypto.Hash, privateKey crypto.Private
 		return resultBytes, nil
 
 	case *ecdsa.PrivateKey:
+
+		// NILCHECK: A nil key panics inside the standard library
+		if typedValue == nil {
+			return nil, derp.Internal(location, "ECDSA private key is nil")
+		}
+
 		resultBytes, err := ecdsa.SignASN1(rand.Reader, typedValue, digest)
 		if err != nil {
 			return nil, derp.Wrap(err, location, "Error signing hash with ECDSA private key")
@@ -218,13 +246,14 @@ func makeSignedDigest(digest []byte, hash crypto.Hash, privateKey crypto.Private
 		return resultBytes, nil
 	}
 
-	return nil, derp.Internal(location, "Unrecognized private key type", privateKey)
+	// RULE: Name the type and never attach the value, which is a secret
+	return nil, derp.Internal(location, "Unrecognized private key type", fmt.Sprintf("type: %T", privateKey))
 }
 
 // getField retrieves the value of a named field from an HTTP request.
 // It handles special cases for (request-target), (created), and (expires)
 // fields, which are not stored in the HTTP header.
-func getField(request *http.Request, signature Signature, field string) string {
+func getField(request *http.Request, signature Signature, hostname string, field string) string {
 
 	field = strings.Trim(field, " ")
 	field = strings.ToLower(field)
@@ -237,7 +266,7 @@ func getField(request *http.Request, signature Signature, field string) string {
 
 	// Special case for "host" which needs to read the request URL
 	case FieldHost:
-		return trueHostname(request)
+		return trueHostname(request, hostname)
 
 	case FieldCreated:
 		return signature.CreatedString()
@@ -261,7 +290,9 @@ func getPathAndQuery(url *url.URL) string {
 		return ""
 	}
 
-	result := url.Path
+	// RULE: Sign the path as it is written on the wire. The decoded path would let a signature
+	// for `/a%2Fb` verify on `/a/b`.
+	result := url.EscapedPath()
 
 	if result == "" {
 		result = "/"
@@ -274,17 +305,14 @@ func getPathAndQuery(url *url.URL) string {
 	return result
 }
 
-// trueHostname returns the host name from the request, accounting for
-// proxy headers (like X-Forwarded-Host).
-func trueHostname(request *http.Request) string {
+// trueHostname returns the host that a request was sent to: the one the caller names, or the
+// request's own Host. It never reads a forwarding header, because any client can send one.
+func trueHostname(request *http.Request, hostname string) string {
 
-	// If this is a proxied request, then use the X-Forwarded-Host header
-	// instead of the Host header
-	if trueHost := request.Header.Get("X-Forwarded-Host"); trueHost != "" {
-		return trueHost
+	if hostname != "" {
+		return hostname
 	}
 
-	// Fallback to the Host header if X-Forwarded-Host is not present
 	return request.Host
 }
 

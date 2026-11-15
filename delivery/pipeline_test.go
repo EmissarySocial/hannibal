@@ -820,3 +820,218 @@ func TestConsumer(t *testing.T) {
 	require.NoError(t, consumer.OnError(fanOut, nil))
 	require.NoError(t, consumer.OnFailure(fanOut, nil))
 }
+
+/******************************************
+ * Defects found before v0.48.0
+ ******************************************/
+
+// TestSignerResult verifies that only an actor that does not exist ends a task for good
+func TestSignerResult(t *testing.T) {
+
+	missing := derp.NotFound("test", "Actor not found")
+	gone := derp.Gone("test", "Actor deleted")
+	database := derp.Internal("test", "Database did not answer")
+
+	require.Equal(t, queue.ResultStatusFailure, signerResult(missing, "test", testActor).Status)
+	require.Equal(t, queue.ResultStatusFailure, signerResult(gone, "test", testActor).Status)
+	require.Equal(t, queue.ResultStatusFailure, signerResult(derp.Wrap(missing, "test", "Loading user"), "test", testActor).Status)
+	require.Equal(t, queue.ResultStatusError, signerResult(database, "test", testActor).Status)
+	require.Equal(t, queue.ResultStatusError, signerResult(errors.New("connection reset"), "test", testActor).Status)
+}
+
+// TestPipeline_SignerErrorIsRetried verifies that both tasks retry when the signing actor
+// cannot be loaded for a reason that may pass
+func TestPipeline_SignerErrorIsRetried(t *testing.T) {
+
+	failing := func(string) (Signer, error) {
+		return nil, derp.Internal("test", "Database did not answer")
+	}
+
+	taskQueue, recorder := newRecordingQueue()
+	pipeline := New(taskQueue, &documentClient{}, failing)
+
+	activity := mapof.Any{"id": testActor + "/1", "actor": testActor, "to": []any{testAlice}}
+	require.Equal(t, queue.ResultStatusError, pipeline.FanOut(mapof.Any{"activity": activity}).Status)
+	require.Empty(t, recorder.tasks)
+
+	send := mapof.Any{"actor": testActor, "recipient": testAlice, "body": `{}`}
+	require.Equal(t, queue.ResultStatusError, pipeline.Send(send).Status)
+}
+
+// TestSend_RateLimitExpires verifies that a host cannot hold a delivery with rate limits forever
+func TestSend_RateLimitExpires(t *testing.T) {
+
+	t.Run("a delivery queued eight days ago fails for good", func(t *testing.T) {
+
+		test := newSendTest(t)
+		test.server.status = http.StatusTooManyRequests
+
+		args := test.args(test.alice)
+		args[argumentQueuedAt] = time.Now().Add(-8 * 24 * time.Hour).Unix()
+
+		require.Equal(t, queue.ResultStatusFailure, test.pipeline.Send(args).Status)
+	})
+
+	t.Run("a delivery queued six days ago is rescheduled", func(t *testing.T) {
+
+		test := newSendTest(t)
+		test.server.status = http.StatusTooManyRequests
+
+		args := test.args(test.alice)
+		args[argumentQueuedAt] = time.Now().Add(-6 * 24 * time.Hour).Unix()
+
+		require.Equal(t, queue.ResultStatusRequeue, test.pipeline.Send(args).Status)
+	})
+
+	t.Run("an old delivery that is accepted still succeeds", func(t *testing.T) {
+
+		test := newSendTest(t)
+
+		args := test.args(test.alice)
+		args[argumentQueuedAt] = time.Now().Add(-30 * 24 * time.Hour).Unix()
+
+		require.Equal(t, queue.ResultStatusSuccess, test.pipeline.Send(args).Status)
+	})
+}
+
+// TestIsExpired verifies the edges of a delivery's age
+func TestIsExpired(t *testing.T) {
+
+	now := time.Unix(2_000_000_000, 0)
+
+	require.False(t, isExpired(0, now), "a task that names no time never expires")
+	require.False(t, isExpired(-5, now))
+	require.False(t, isExpired(now.Unix(), now))
+	require.False(t, isExpired(now.Add(time.Hour).Unix(), now), "a time in the future")
+	require.False(t, isExpired(now.Add(-maximumDeliveryAge).Unix(), now))
+	require.True(t, isExpired(now.Add(-maximumDeliveryAge-time.Second).Unix(), now))
+}
+
+// TestFanOut_SendTasksSayWhenTheyWereQueued verifies that each send task carries its queue time
+func TestFanOut_SendTasksSayWhenTheyWereQueued(t *testing.T) {
+
+	taskQueue, recorder := newRecordingQueue()
+	pipeline := New(taskQueue, &documentClient{}, testSigners)
+
+	before := time.Now().Unix()
+	activity := mapof.Any{"id": testActor + "/1", "actor": testActor, "to": []any{testAlice}}
+	require.Equal(t, queue.ResultStatusSuccess, pipeline.FanOut(mapof.Any{"activity": activity}).Status)
+
+	require.Len(t, recorder.tasks, 1)
+	require.GreaterOrEqual(t, recorder.tasks[0].Arguments.GetInt64(argumentQueuedAt), before)
+}
+
+// TestSend_CollectionClaimedByAnotherOrigin verifies that an actor on another server cannot
+// take the copy meant for the owner of a followers collection
+func TestSend_CollectionClaimedByAnotherOrigin(t *testing.T) {
+
+	test := newSendTest(t)
+	followers := test.alice + "/followers"
+
+	// Mallory is named first, and claims alice's followers as her own
+	mallory := "https://evil.example/@mallory"
+	test.client.documents[mallory] = map[string]any{"id": mallory, "type": "Person", "inbox": mallory + "/inbox", "followers": followers}
+
+	body, err := json.Marshal(map[string]any{
+		"id": testActor + "/3", "type": "Create", "actor": testActor,
+		"to": []any{mallory, test.alice},
+		"cc": []any{followers},
+	})
+	require.NoError(t, err)
+
+	result := test.pipeline.Send(mapof.Any{"actor": testActor, "recipient": followers, "body": string(body)})
+	require.Equal(t, queue.ResultStatusSuccess, result.Status)
+	require.Equal(t, 1, test.server.count())
+	require.Equal(t, "/@alice/inbox", test.server.requests[0].URL.Path)
+}
+
+// TestOwnerCandidates_BoundsReplyParents verifies that an activity cannot make a send task
+// load a long list of posts
+func TestOwnerCandidates_BoundsReplyParents(t *testing.T) {
+
+	test := newSendTest(t)
+
+	parents := make([]any, 0, 100)
+
+	for index := range 100 {
+		parents = append(parents, "https://remote.example/notes/"+string(rune('a'+index%26))+"/"+time.Duration(index).String())
+	}
+
+	activity := map[string]any{"object": map[string]any{"inReplyTo": parents}}
+
+	test.pipeline.ownerCandidates("https://remote.example/followers", activity)
+	require.Len(t, test.client.loads, maxReplyParents)
+}
+
+// TestOwnerCandidates_ReadsAuthorsWithoutLoading verifies that a parent's authors are read as
+// references. The parent carries a client, so a getter that loads would fetch each author.
+func TestOwnerCandidates_ReadsAuthorsWithoutLoading(t *testing.T) {
+
+	const parentURL = "https://example.com/notes/1"
+	const authorURL = "https://example.com/users/author"
+	const actorURL = "https://example.com/users/actor"
+
+	test := newSendTest(t)
+	test.client.documents[parentURL] = map[string]any{
+		"id":           parentURL,
+		"type":         "Note",
+		"attributedTo": authorURL,
+		"actor":        []any{map[string]any{"id": actorURL}},
+	}
+
+	activity := map[string]any{
+		"to":     []any{vocab.NamespacePublic, testBob},
+		"object": map[string]any{"inReplyTo": parentURL},
+	}
+
+	candidates := test.pipeline.ownerCandidates("https://example.com/users/author/followers", activity)
+
+	require.Equal(t, []string{authorURL, actorURL, testBob}, candidates)
+	require.Equal(t, []string{parentURL}, test.client.loads, "only the parent is loaded")
+}
+
+// TestOwnerCandidates_ObjectIsAURL verifies that an object named only by its URL is not loaded
+// to look for the post it replies to
+func TestOwnerCandidates_ObjectIsAURL(t *testing.T) {
+
+	test := newSendTest(t)
+
+	activity := map[string]any{
+		"to":     testBob,
+		"object": "https://example.com/notes/1",
+	}
+
+	require.Equal(t, []string{testBob}, test.pipeline.ownerCandidates("https://example.com/followers", activity))
+	require.Empty(t, test.client.loads)
+}
+
+// TestSend_KeyCannotSign verifies that nothing is sent unsigned, and that the task is not retried
+func TestSend_KeyCannotSign(t *testing.T) {
+
+	server := newInboxServer(t)
+	alice, aliceDocument := server.actor("alice")
+	client := &documentClient{documents: map[string]map[string]any{alice: aliceDocument}, errors: map[string]error{}}
+
+	broken := func(string) (Signer, error) {
+		return brokenSigner{}, nil
+	}
+
+	pipeline := New(nil, client, broken, WithAllowPrivateIPs(true))
+
+	result := pipeline.Send(mapof.Any{"actor": testActor, "recipient": alice, "body": `{"type":"Create"}`})
+	require.Equal(t, queue.ResultStatusFailure, result.Status)
+	require.Zero(t, server.count())
+}
+
+// brokenSigner is a Signer whose key cannot sign anything
+type brokenSigner struct{}
+
+// ActorID returns the local test actor
+func (brokenSigner) ActorID() string {
+	return testActor
+}
+
+// PrivateKey returns a value that is not a key
+func (brokenSigner) PrivateKey() (string, crypto.PrivateKey) {
+	return testActor + "#main-key", "not a key"
+}

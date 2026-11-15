@@ -78,3 +78,19 @@ func VerifierIgnoreBodyDigest() VerifierOption {
 		verifier.CheckDigest = false
 	}
 }
+
+// VerifierMaxBodySize sets the largest body, in bytes, that the Digest check reads. Zero or
+// less restores the default. Set it to the limit the caller already read the body under.
+func VerifierMaxBodySize(maxBytes int64) VerifierOption {
+	return func(verifier *Verifier) {
+		verifier.MaxBodySize = maxBytes
+	}
+}
+
+// WithHostname names the host that requests are signed for, in place of the request's own
+// Host. A server behind a proxy that rewrites Host passes its public name. Empty changes nothing.
+func WithHostname(hostname string) VerifierOption {
+	return func(verifier *Verifier) {
+		verifier.Hostname = hostname
+	}
+}

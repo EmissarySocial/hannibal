@@ -52,6 +52,7 @@ In the event that you need to customize the way you sign a Request, you can pass
 | `SignerSignatureHash(...)` | Sets the algorithm used to hash the "Signature" header. | `crypto.SHA256` |
 | `SignerBodyDigest(...)` | Sets the algorithm used to create the "Digest" header. | `crypto.SHA256` |
 | `SignerCreated(...)` / `SignerExpires(...)` | Set the `(created)` / `(expires)` signature timestamps. | — |
+| `SignerMaxBodySize(bytes)` | Sets the largest body that the `Digest` is computed over. A larger body cannot be signed. | 1 MiB |
 
 ```go
 // How to sign a request using additional options
@@ -110,6 +111,10 @@ In the event that you need to customize the way you verify a Request, you can pa
 | `VerifierSignatureHashes(...)` | Sets the hashing algorithms to try when validating the "Signature" header. Validation fails if checks on ALL algorithms are unsuccessful. | `crypto.SHA256`, `crypto.SHA512` |
 | `VerifierTimeout(...)` / `VerifierIgnoreTimeout()` | Tune or disable the signature freshness window. | — |
 | `VerifierIgnoreBodyDigest()` | Skip body-digest verification. | — |
+| `VerifierMaxBodySize(...)` | Sets the largest body, in bytes, that the Digest check reads. | 1 MiB |
+| `WithHostname(hostname)` | Names the host that requests are signed for, in place of the request's own `Host`. A server behind a proxy that rewrites `Host` passes its public name. The verifier never reads `X-Forwarded-Host`. | the request's `Host` |
+
+A verifier refuses a request whose `Date` is older or newer than the timeout allows, a request with no `Date` when the date must be signed, and a request that has a body and no `Digest` header.
 
 ```go
 // How to verify a request using additional options

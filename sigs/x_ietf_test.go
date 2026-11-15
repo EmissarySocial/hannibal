@@ -60,7 +60,7 @@ func Test_IETF_All_Headers_Prep(t *testing.T) {
 	signature.Created = 1402170695
 	signature.Expires = 1402170699
 
-	plaintext := makePlaintext(request, signature, signedFields...)
+	plaintext := makePlaintext(request, signature, "", signedFields...)
 
 	expectedPlaintext := removeTabs(
 		`(request-target): post /foo?param=value&pet=dog
@@ -95,7 +95,7 @@ func Test_IEFT_SignatureStringConstruction(t *testing.T) {
 	signature := NewSignature()
 	signature.Created = 1402170695
 
-	plaintext := makePlaintext(request, signature, "(request-target)", "(created)", "host", "date", "cache-control", "x-emptyheader", "x-example")
+	plaintext := makePlaintext(request, signature, "", "(request-target)", "(created)", "host", "date", "cache-control", "x-emptyheader", "x-example")
 
 	expectedPlainText := removeTabs(
 		`(request-target): get /foo

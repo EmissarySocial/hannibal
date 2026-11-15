@@ -64,7 +64,8 @@ func TestWithSigner(t *testing.T) {
 	// ModifyRequest returns nil (it does not replace the request) and signs in
 	// place; it also writes the headers back into the transaction.
 	txn := remote.Post("https://example.com/inbox")
-	response := option.ModifyRequest(txn, request)
+	response, err := option.ModifyRequest(txn, request)
+	require.Nil(t, err)
 	require.Nil(t, response)
 
 	// The middleware must have applied both headers.
