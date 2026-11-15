@@ -25,7 +25,7 @@ func NewImage(value any) Image {
 	switch typed := value.(type) {
 
 	case Document:
-		return NewImage(typed.value.Raw())
+		return NewImage(typed.getValue().Raw())
 
 	case property.Value:
 		return NewImage(typed.Raw())
@@ -59,10 +59,21 @@ func (image Image) URL() string {
 	return image.Href()
 }
 
-// Href returns the Image's Href property.
-// https://www.w3.org/TR/activitystreams-vocabulary/#dfn-href
-// Note: This method searches both the "href" and "url" properties in maps.
+// Href returns the Image's address when it is an absolute http or https URL, and an empty
+// string otherwise. https://www.w3.org/TR/activitystreams-vocabulary/#dfn-href
 func (image Image) Href() string {
+
+	// RULE: The address comes from another server and is written into pages, so any other
+	// scheme, such as `javascript:`, is never returned
+	if href := image.rawHref(); isWebAddress(href) {
+		return href
+	}
+
+	return ""
+}
+
+// rawHref returns the Image's address as the document wrote it, from "href" and then "url"
+func (image Image) rawHref() string {
 
 	switch typed := image.value.(type) {
 
@@ -82,7 +93,7 @@ func (image Image) Href() string {
 
 	case []any:
 		if len(typed) > 0 {
-			return NewImage(typed[0]).URL()
+			return NewImage(typed[0]).rawHref()
 		}
 	}
 
@@ -96,7 +107,7 @@ func (image Image) Summary() string {
 	switch typed := image.value.(type) {
 
 	case map[string]any:
-		return convert.String(typed[vocab.PropertySummary])
+		return plainText(convert.String(typed[vocab.PropertySummary]))
 
 	case []any:
 		if len(typed) > 0 {
@@ -114,7 +125,7 @@ func (image Image) MediaType() string {
 	switch typed := image.value.(type) {
 
 	case map[string]any:
-		return convert.String(typed[vocab.PropertyMediaType])
+		return plainText(convert.String(typed[vocab.PropertyMediaType]))
 
 	case []any:
 		if len(typed) > 0 {

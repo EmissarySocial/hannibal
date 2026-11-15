@@ -59,6 +59,7 @@ func (c *Collection) UnmarshalMap(data mapof.Any) error {
 	}
 
 	c.Type = vocab.CoreTypeCollection
+	c.ID = data.GetString("id")
 	c.Summary = data.GetString("summary")
 	c.TotalItems = data.GetInt("totalItems")
 	c.Current = data.GetString("current")

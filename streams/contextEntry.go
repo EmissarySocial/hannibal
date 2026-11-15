@@ -2,6 +2,8 @@ package streams
 
 import (
 	"encoding/json"
+
+	"github.com/benpate/derp"
 )
 
 // ContextEntry represents a single entry in a JSON-LD @context: a vocabulary,
@@ -93,4 +95,52 @@ func (entry ContextEntry) IsLanguageDefined() bool {
 // HasExtensions returns TRUE if the entry defines one or more namespace extensions.
 func (entry ContextEntry) HasExtensions() bool {
 	return len(entry.Extensions) > 0
+}
+
+// UnmarshalJSON decodes the entry from a JSON string (vocabulary only) or object. A term whose
+// definition is not a string cannot be held in Extensions, and is skipped.
+func (entry *ContextEntry) UnmarshalJSON(data []byte) error {
+
+	const location = "hannibal.streams.ContextEntry.UnmarshalJSON"
+
+	// The short form is the vocabulary alone
+	var vocabulary string
+
+	if err := json.Unmarshal(data, &vocabulary); err == nil {
+		*entry = NewContextEntry(vocabulary)
+		return nil
+	}
+
+	// The long form is an object of `@vocab`, `@language`, and named terms
+	var terms map[string]any
+
+	if err := json.Unmarshal(data, &terms); err != nil {
+		return derp.Wrap(err, location, "Context entry must be a string or an object")
+	}
+
+	result := NewContextEntry("")
+
+	for name, value := range terms {
+
+		text, isText := value.(string)
+
+		if !isText {
+			continue
+		}
+
+		switch name {
+
+		case "@vocab":
+			result.Vocabulary = text
+
+		case "@language":
+			result.Language = text
+
+		default:
+			result.Extensions[name] = text
+		}
+	}
+
+	*entry = result
+	return nil
 }

@@ -72,7 +72,15 @@ func (c *OrderedCollectionPage) UnmarshalMap(data mapof.Any) error {
 	c.Prev = data.GetString("prev")
 	c.Next = data.GetString("next")
 
-	if dataItems, ok := data["items"]; ok {
+	// An ordered collection lists its members in `orderedItems`. Some servers write `items`,
+	// which is read only when the correct property is missing.
+	dataItems, found := data[vocab.PropertyOrderedItems]
+
+	if !found {
+		dataItems, found = data[vocab.PropertyItems]
+	}
+
+	if found {
 		if items, ok := UnmarshalItems(dataItems); ok {
 			c.OrderedItems = items
 		}

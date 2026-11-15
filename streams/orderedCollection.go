@@ -56,13 +56,22 @@ func (c *OrderedCollection) UnmarshalMap(data mapof.Any) error {
 	}
 
 	c.Type = vocab.CoreTypeOrderedCollection
+	c.ID = data.GetString("id")
 	c.Summary = data.GetString("summary")
 	c.TotalItems = data.GetInt("totalItems")
 	c.Current = data.GetString("current")
 	c.First = data.GetString("first")
 	c.Last = data.GetString("last")
 
-	if dataItems, ok := data["items"]; ok {
+	// An ordered collection lists its members in `orderedItems`. Some servers write `items`,
+	// which is read only when the correct property is missing.
+	dataItems, found := data[vocab.PropertyOrderedItems]
+
+	if !found {
+		dataItems, found = data[vocab.PropertyItems]
+	}
+
+	if found {
 		if items, ok := UnmarshalItems(dataItems); ok {
 			c.OrderedItems = items
 		}

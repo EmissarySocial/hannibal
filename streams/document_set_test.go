@@ -35,7 +35,9 @@ func TestSetID_Nested(t *testing.T) {
 	document := NewDocument(value)
 	success := document.SetID("new-id")
 
-	document.Object().SetID("new-id")
+	// The setters need a variable to write to, because a string becomes an object when it is set
+	object := document.Object()
+	object.SetID("new-id")
 	require.True(t, success)
 	require.Equal(t, "new-id", document.ID())
 	require.Equal(t, "new-id", document.Object().ID())

@@ -8,6 +8,7 @@ import (
 	"github.com/benpate/rosetta/convert"
 	"github.com/benpate/rosetta/sliceof"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 // TestDocument_Get confirms Get descends into map properties and returns a Nil
@@ -92,8 +93,7 @@ func TestDocument_Slice(t *testing.T) {
 	assert.Equal(t, []string{"https://example.com/1", "https://example.com/2"}, []string(ids))
 }
 
-// TestDocument_Map confirms Map renders a document to a map and honors the strip
-// options.
+// TestDocument_Map confirms Map renders a document to a map that holds every property
 func TestDocument_Map(t *testing.T) {
 
 	doc := NewDocument(map[string]any{
@@ -103,18 +103,44 @@ func TestDocument_Map(t *testing.T) {
 		vocab.PropertyName: "Alice",
 	})
 
-	// Without options, all keys survive.
 	full := doc.Map()
 	assert.Equal(t, "Alice", full[vocab.PropertyName])
 	assert.Contains(t, full, vocab.AtContext)
+	assert.Contains(t, full, vocab.PropertyTo)
+}
 
-	// StripContext removes the JSON-LD @context.
-	stripped := doc.Map(OptionStripContext)
-	assert.NotContains(t, stripped, vocab.AtContext)
+// TestDocument_Map_IsLive confirms that Map returns the Document's own map, so a change to the
+// result is a change to the Document
+func TestDocument_Map_IsLive(t *testing.T) {
 
-	// StripRecipients removes the addressing fields.
-	noRecipients := doc.Map(OptionStripRecipients)
-	assert.NotContains(t, noRecipients, vocab.PropertyTo)
+	doc := NewDocument(map[string]any{vocab.PropertyName: "original"})
+
+	doc.Map()[vocab.PropertyName] = "CHANGED"
+
+	require.Equal(t, "CHANGED", doc.Name())
+}
+
+// TestDocument_Map_List confirms that a list maps to its first item
+func TestDocument_Map_List(t *testing.T) {
+
+	doc := NewDocument([]any{
+		map[string]any{vocab.PropertyName: "first"},
+		map[string]any{vocab.PropertyName: "second"},
+	})
+
+	require.Equal(t, "first", doc.Map()[vocab.PropertyName])
+}
+
+// TestDocument_Map_Empty confirms that a document with no value maps to an empty map that
+// can be written to
+func TestDocument_Map_Empty(t *testing.T) {
+
+	for _, doc := range []Document{NilDocument(), NewDocument(nil), NewDocument(42), {}} {
+		result := doc.Map()
+		require.NotNil(t, result)
+		require.Empty(t, result)
+		result["key"] = "value"
+	}
 }
 
 // TestDocument_Map_String confirms a bare-string document maps to a single id key.

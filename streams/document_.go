@@ -1,7 +1,6 @@
 package streams
 
 import (
-	"html"
 	"net/http"
 	"time"
 
@@ -27,14 +26,15 @@ type Document struct {
 	client     Client
 }
 
-// NewDocument creates a new Document object from a JSON-LD map[string]any
+// NewDocument creates a new Document object from a JSON-LD map[string]any. It loads nothing
+// from the network unless WithClient or WithDefaultClient gives it a Client.
 func NewDocument(value any, options ...DocumentOption) Document {
 
 	result := Document{
 		value:      property.NewValue(value),
 		Metadata:   metadata.New(),
 		httpHeader: make(http.Header),
-		client:     NewDefaultClient(),
+		client:     NewNilClient(),
 	}
 
 	result.WithOptions(options...)
@@ -44,6 +44,17 @@ func NewDocument(value any, options ...DocumentOption) Document {
 // NilDocument returns a new, empty Document.
 func NilDocument(options ...DocumentOption) Document {
 	return NewDocument(nil, options...)
+}
+
+// getValue returns the document's value. A Document made without NewDocument, such as a
+// struct field that the JSON left out, holds no value, and reads as nil.
+func (document Document) getValue() property.Value {
+
+	if document.value == nil {
+		return property.Nil{}
+	}
+
+	return document.value
 }
 
 /******************************************
@@ -72,7 +83,7 @@ func (document Document) IsFloat() bool {
 
 // IsNil returns TRUE if the document's value is nil.
 func (document Document) IsNil() bool {
-	return document.value.IsNil()
+	return document.getValue().IsNil()
 }
 
 // IsMap returns TRUE if the document's value is a map.
@@ -110,7 +121,7 @@ func (document Document) IsSameOrigin(url string) bool {
 
 // Value returns the generic data stored in this Document
 func (document Document) Value() any {
-	return document.value.Raw()
+	return document.getValue().Raw()
 }
 
 // Clone returns a deep copy of the Document.
@@ -119,7 +130,7 @@ func (document Document) Clone() Document {
 	return Document{
 		client:     document.client,
 		httpHeader: document.httpHeader.Clone(),
-		value:      document.value.Clone(),
+		value:      document.getValue().Clone(),
 		Metadata:   document.Metadata.Clone(),
 	}
 }
@@ -148,7 +159,7 @@ func (document Document) Get(key string) Document {
 	}
 
 	// Retrieve the value from the property.Value
-	if value := document.value.Get(key); !value.IsNil() {
+	if value := document.getValue().Get(key); !value.IsNil() {
 		return document.sub(value)
 	}
 
@@ -162,7 +173,7 @@ func (document Document) Get(key string) Document {
 
 // Slice returns the document's value as a slice.
 func (document Document) Slice() sliceof.Any {
-	return convert.SliceOfAny(document.value.Raw())
+	return convert.SliceOfAny(document.getValue().Raw())
 }
 
 // SliceOfDocuments transforms the current object into a slice of separate
@@ -189,24 +200,24 @@ func (document Document) SliceOfString() sliceof.String {
 	return result
 }
 
-// Bool returns the current object as a floating-point value
+// Bool returns the current object as a boolean value
 func (document Document) Bool() bool {
 
 	if getter, ok := document.value.(property.BoolGetter); ok {
 		return getter.Bool()
 	}
 
-	return convert.Bool(document.value.Head().Raw())
+	return convert.Bool(document.getValue().Head().Raw())
 }
 
-// Float returns the current object as an integer value
+// Float returns the current object as a floating-point value
 func (document Document) Float() float64 {
 
 	if getter, ok := document.value.(property.FloatGetter); ok {
 		return getter.Float()
 	}
 
-	return convert.Float(document.value.Head().Raw())
+	return convert.Float(document.getValue().Head().Raw())
 }
 
 // Int returns the current object as an integer value
@@ -216,7 +227,7 @@ func (document Document) Int() int {
 		return getter.Int()
 	}
 
-	return convert.Int(document.value.Head().Raw())
+	return convert.Int(document.getValue().Head().Raw())
 }
 
 // Load retrieves a JSON-LD document from its remote server
@@ -248,8 +259,8 @@ func (document Document) Load(options ...any) (Document, error) {
 	return result, nil
 }
 
-// MustLoad retrieves a JSON-LD document from its remote server.
-// It silently reports errors, but does not return them.
+// MustLoad retrieves a JSON-LD document from its remote server. It discards any error, and
+// returns whatever Load returned with it.
 func (document Document) MustLoad(options ...any) Document {
 	result, _ := document.Load(options...)
 	return result
@@ -270,38 +281,23 @@ func (document Document) LoadLink(options ...any) Document {
 	return document
 }
 
-// Map returns the current object as an enhanced map[string]any
-func (document Document) Map(options ...string) mapof.Any {
-
-	// Create an empty result map
-	result := make(map[string]any)
+// Map returns the current object as a map. A list uses its first item, and a string becomes a
+// map that holds only its id.
+func (document Document) Map() mapof.Any {
 
 	// Traverse slices, if necessary
-	value := document.value.Head()
+	value := document.getValue().Head()
 
+	// NOTE: This is the Document's own map, not a copy. Changing it changes the Document.
 	if getter, ok := value.(property.MapGetter); ok {
-		result = getter.Map()
-	} else if getter, ok := value.(property.IsStringer); ok {
-		result[vocab.PropertyID] = getter.String()
+		return getter.Map()
 	}
 
-	// Apply optional filters
-	for _, option := range options {
-		switch option {
-
-		case OptionStripContext:
-			delete(result, vocab.AtContext)
-
-		case OptionStripRecipients:
-			delete(result, vocab.PropertyTo)
-			delete(result, vocab.PropertyBTo)
-			delete(result, vocab.PropertyCC)
-			delete(result, vocab.PropertyBCC)
-		}
+	if getter, ok := value.(property.IsStringer); ok {
+		return mapof.Any{vocab.PropertyID: getter.String()}
 	}
 
-	return result
-
+	return mapof.NewAny()
 }
 
 // MapKeys returns a slice of all keys in the current map
@@ -317,10 +313,7 @@ func (document Document) MapKeys() sliceof.String {
 // String returns the current object as a pure string (no HTML).
 // This value is filtered by blueMonday, so it is safe to use in HTML.
 func (document Document) String() string {
-	result := document.rawString()
-	result = strictPolicy.Sanitize(result)
-	result = html.UnescapeString(result)
-	return result
+	return plainText(document.rawString())
 }
 
 // HTMLString returns the document's value as an HTML string.
@@ -337,7 +330,7 @@ func (document Document) rawString() string {
 		return getter.String()
 	}
 
-	return convert.String(document.value.Head().Raw())
+	return convert.String(document.getValue().Head().Raw())
 }
 
 // Time returns the current object as a time value
@@ -347,7 +340,7 @@ func (document Document) Time() time.Time {
 		return getter.Time()
 	}
 
-	return convert.Time(document.value.Head().Raw())
+	return convert.Time(document.getValue().Head().Raw())
 }
 
 /******************************************
@@ -359,7 +352,7 @@ func (document Document) Time() time.Time {
 // If the document is a slice, then this method returns the length of the slice
 // Otherwise, this method returns 1
 func (document Document) Len() int {
-	return document.value.Len()
+	return document.getValue().Len()
 }
 
 /******************************************
@@ -369,28 +362,28 @@ func (document Document) Len() int {
 // Head returns the first object in a slice.
 // For all other document types, it returns the current document.
 func (document Document) Head() Document {
-	return document.sub(document.value.Head())
+	return document.sub(document.getValue().Head())
 }
 
 // Tail returns all records after the first in a slice.
 // For all other document types, it returns a nil document.
 func (document Document) Tail() Document {
-	return document.sub(document.value.Tail())
+	return document.sub(document.getValue().Tail())
 }
 
 // IsEmptyTail return TRUE there are no array items after the current value
 func (document Document) IsEmptyTail() bool {
-	return document.value.Len() < 2
+	return document.getValue().Len() < 2
 }
 
 // IsEmpty returns TRUE if the documet is empty.
 func (document Document) IsEmpty() bool {
-	return document.value.Len() == 0
+	return document.getValue().Len() == 0
 }
 
 // NotEmpty returns TRUE if the document has at least one item in it.
 func (document Document) NotEmpty() bool {
-	return document.value.Len() > 0
+	return document.getValue().Len() > 0
 }
 
 /******************************************
@@ -422,13 +415,14 @@ func (document Document) AddOptions(options ...DocumentOption) Document {
 	return document
 }
 
+// getClient returns the Document's Client. A Document made without NewDocument has none, and loads nothing.
 func (document *Document) getClient() Client {
 
 	if document.client != nil {
 		return document.client
 	}
 
-	return NewDefaultClient()
+	return NewNilClient()
 }
 
 // sub returns a new Document with a new VALUE, all of the same OPTIONS as this original
