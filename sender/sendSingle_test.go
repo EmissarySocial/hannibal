@@ -14,9 +14,11 @@ import (
 	"sync"
 	"sync/atomic"
 	"testing"
+	"time"
 
 	"github.com/benpate/derp"
 	"github.com/benpate/hannibal/sigs"
+	"github.com/benpate/hannibal/vocab"
 	"github.com/benpate/rosetta/mapof"
 	"github.com/benpate/turbine/queue"
 	"github.com/stretchr/testify/assert"
@@ -332,4 +334,143 @@ func captureInbox(t *testing.T, sender Sender) (*httptest.Server, *capturedReque
 func sha256Digest(body []byte) string {
 	sum := sha256.Sum256(body)
 	return "SHA-256=" + base64.StdEncoding.EncodeToString(sum[:])
+}
+
+// rateLimitedInbox starts a local inbox that answers every request with a 429
+func rateLimitedInbox(t *testing.T, retryAfter string) *httptest.Server {
+	t.Helper()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		if retryAfter != "" {
+			w.Header().Set("Retry-After", retryAfter)
+		}
+		w.WriteHeader(http.StatusTooManyRequests)
+	}))
+	t.Cleanup(server.Close)
+
+	return server
+}
+
+// TestSendToSingleRecipient_RateLimitWaitIsCapped confirms a host cannot park a delivery for
+// longer than an hour with one large Retry-After
+func TestSendToSingleRecipient_RateLimitWaitIsCapped(t *testing.T) {
+
+	sender, actorID := newKeyedSender(t)
+	server := rateLimitedInbox(t, "8640000")
+
+	result := sender.SendToSingleRecipient(mapof.Any{"actor": actorID, "inbox": server.URL, "body": `{"type":"Create"}`})
+
+	assert.Equal(t, queue.ResultStatusRequeue, result.Status)
+	assert.Equal(t, time.Hour, result.Delay)
+}
+
+// TestSendToSingleRecipient_RateLimitExpires confirms a host cannot hold a delivery with
+// rate limits forever
+func TestSendToSingleRecipient_RateLimitExpires(t *testing.T) {
+
+	sender, actorID := newKeyedSender(t)
+	server := rateLimitedInbox(t, "")
+
+	old := mapof.Any{"actor": actorID, "inbox": server.URL, "body": `{"type":"Create"}`, argumentQueuedAt: time.Now().Add(-8 * 24 * time.Hour).Unix()}
+	assert.Equal(t, queue.ResultStatusFailure, sender.SendToSingleRecipient(old).Status)
+
+	recent := mapof.Any{"actor": actorID, "inbox": server.URL, "body": `{"type":"Create"}`, argumentQueuedAt: time.Now().Add(-6 * 24 * time.Hour).Unix()}
+	assert.Equal(t, queue.ResultStatusRequeue, sender.SendToSingleRecipient(recent).Status)
+
+	// A task queued before the argument existed is rescheduled as it always was
+	legacy := mapof.Any{"actor": actorID, "inbox": server.URL, "body": `{"type":"Create"}`}
+	assert.Equal(t, queue.ResultStatusRequeue, sender.SendToSingleRecipient(legacy).Status)
+}
+
+// failingLocator cannot load any actor, for a reason that may pass
+type failingLocator struct{}
+
+// Actor always fails with an internal error
+func (failingLocator) Actor(string) (Actor, error) {
+	return nil, derp.Internal("failingLocator.Actor", "database did not answer")
+}
+
+// Recipient returns an empty sequence for every recipient
+func (failingLocator) Recipient(string) (iter.Seq[string], error) {
+	return func(func(string) bool) {}, nil
+}
+
+// TestSender_ActorErrorIsRetried confirms both tasks retry when the sending actor cannot be
+// loaded for a reason that may pass
+func TestSender_ActorErrorIsRetried(t *testing.T) {
+
+	q, _ := newRecordingQueue()
+	sender := New(failingLocator{}, q)
+
+	single := sender.SendToSingleRecipient(mapof.Any{"actor": "https://example.com/users/alice", "inbox": "https://example.com/inbox", "body": `{}`})
+	assert.Equal(t, queue.ResultStatusError, single.Status)
+
+	all := sender.SendToAllRecipients(mapof.Any{"actor": "https://example.com/users/alice", "to": "https://example.com/users/bob"})
+	assert.Equal(t, queue.ResultStatusError, all.Status)
+}
+
+// TestSendToAllRecipients_ErrorsNameTheActivity confirms a failed fan-out names the activity
+// and never carries its blind recipients
+func TestSendToAllRecipients_ErrorsNameTheActivity(t *testing.T) {
+
+	q, _ := newRecordingQueue()
+	sender := New(failingLocator{}, q)
+
+	result := sender.SendToAllRecipients(mapof.Any{
+		"id":    "https://example.com/activities/1",
+		"actor": "https://example.com/users/alice",
+		"bcc":   []any{"https://example.com/users/secret"},
+		"bto":   "https://example.com/users/hidden",
+	})
+
+	require.Error(t, result.Error)
+
+	encoded, err := json.Marshal(result.Error)
+	require.NoError(t, err)
+
+	report := string(encoded) + derp.Message(result.Error) + result.Error.Error()
+	assert.Contains(t, report, "https://example.com/activities/1")
+	assert.NotContains(t, report, "secret")
+	assert.NotContains(t, report, "hidden")
+}
+
+// TestSendToAllRecipients_TasksSayWhenTheyWereQueued confirms each send task carries its queue time
+func TestSendToAllRecipients_TasksSayWhenTheyWereQueued(t *testing.T) {
+
+	q, recorder := newRecordingQueue()
+	sender := New(testLocator{}, q)
+	before := time.Now().Unix()
+
+	result := sender.SendToAllRecipients(mapof.Any{
+		vocab.PropertyActor: "https://test.actor.social",
+		vocab.PropertyTo:    "https://test.actor.social/",
+	})
+
+	require.Equal(t, queue.ResultStatusSuccess, result.Status)
+	require.NotEmpty(t, recorder.tasks)
+
+	for _, task := range recorder.tasks {
+		assert.GreaterOrEqual(t, task.Arguments.GetInt64(argumentQueuedAt), before)
+	}
+}
+
+// TestSendToSingleRecipient_KeyCannotSign confirms nothing is sent unsigned, and the task is not retried
+func TestSendToSingleRecipient_KeyCannotSign(t *testing.T) {
+
+	received := 0
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		received++
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer server.Close()
+
+	actorID := "https://example.com/users/alice"
+	q, _ := newRecordingQueue()
+	sender := New(keyedLocator{actor: keyedActor{id: actorID, keyID: actorID + "#main-key", privateKey: "not a key"}}, q, AllowPrivateIPs(true))
+
+	result := sender.SendToSingleRecipient(mapof.Any{"actor": actorID, "inbox": server.URL, "body": `{"type":"Create"}`})
+
+	assert.Equal(t, queue.ResultStatusFailure, result.Status)
+	assert.Zero(t, received)
 }

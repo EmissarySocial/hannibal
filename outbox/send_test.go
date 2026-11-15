@@ -190,6 +190,7 @@ type inboxRecorder struct {
 	server *httptest.Server
 	mu     sync.Mutex
 	bodies []mapof.Any
+	raw    []string
 	hits   int
 }
 
@@ -205,6 +206,7 @@ func newInboxRecorder(t *testing.T) *inboxRecorder {
 
 		recorder.mu.Lock()
 		recorder.bodies = append(recorder.bodies, parsed)
+		recorder.raw = append(recorder.raw, string(body))
 		recorder.hits++
 		recorder.mu.Unlock()
 
@@ -241,4 +243,146 @@ func (r *inboxRecorder) lastBody() mapof.Any {
 		return mapof.NewAny()
 	}
 	return r.bodies[len(r.bodies)-1]
+}
+
+/******************************************
+ * Defects found before v0.48.0
+ ******************************************/
+
+// TestSend_StripsBlindRecipients confirms no recipient is sent `bto` or `bcc`, at any level,
+// and that the caller's message keeps them
+func TestSend_StripsBlindRecipients(t *testing.T) {
+
+	object := map[string]any{
+		vocab.PropertyType: vocab.ObjectTypeNote,
+		vocab.PropertyBTo:  []any{"https://remote.example.com/users/hidden"},
+		vocab.PropertyBCC:  "https://remote.example.com/users/secret",
+	}
+
+	message := mapof.Any{
+		vocab.PropertyType:   vocab.ActivityTypeCreate,
+		vocab.PropertyBCC:    []any{"https://remote.example.com/users/secret"},
+		vocab.PropertyObject: object,
+	}
+
+	t.Run("Send", func(t *testing.T) {
+
+		recorder := newInboxRecorder(t)
+		actor := newSendingActor(t, recorder)
+
+		actor.Send(message, makeIterator("https://remote.example.com/users/bob"))
+
+		require.Equal(t, 1, recorder.count())
+		assert.NotContains(t, recorder.lastRaw(), "secret")
+		assert.NotContains(t, recorder.lastRaw(), "hidden")
+		assert.Equal(t, vocab.ActivityTypeCreate, recorder.lastBody().GetString(vocab.PropertyType))
+	})
+
+	t.Run("SendOne", func(t *testing.T) {
+
+		recorder := newInboxRecorder(t)
+		actor := newSendingActor(t, recorder)
+
+		require.NoError(t, actor.SendOne("https://remote.example.com/users/bob", message))
+
+		require.Equal(t, 1, recorder.count())
+		assert.NotContains(t, recorder.lastRaw(), "secret")
+		assert.NotContains(t, recorder.lastRaw(), "hidden")
+	})
+
+	// The caller's copy is unchanged
+	assert.Contains(t, message, vocab.PropertyBCC)
+	assert.Contains(t, object, vocab.PropertyBTo)
+}
+
+// TestSend_FiltersEverySpellingOfPublic confirms Send delivers nothing to the Public marker,
+// however it is written
+func TestSend_FiltersEverySpellingOfPublic(t *testing.T) {
+
+	recorder := newInboxRecorder(t)
+	actor := newSendingActor(t, recorder)
+
+	actor.Send(mapof.Any{vocab.PropertyType: vocab.ActivityTypeCreate}, makeIterator(
+		vocab.NamespaceActivityStreamsPublic,
+		vocab.NamespaceASPublic,
+		vocab.NamespacePublic,
+	))
+
+	assert.Zero(t, recorder.count())
+}
+
+// TestSend_OneCopyPerRecipient confirms a recipient named in several places receives one copy
+func TestSend_OneCopyPerRecipient(t *testing.T) {
+
+	recorder := newInboxRecorder(t)
+	actor := newSendingActor(t, recorder)
+
+	bob := "https://remote.example.com/users/bob"
+	carol := "https://remote.example.com/users/carol"
+
+	actor.Send(mapof.Any{vocab.PropertyType: vocab.ActivityTypeCreate},
+		makeIterator(bob, carol),
+		makeIterator(bob),
+		makeIterator(carol, bob),
+	)
+
+	assert.Equal(t, 2, recorder.count())
+}
+
+// noInboxClient is a streams.Client whose every document is a collection, which has no inbox
+type noInboxClient struct{}
+
+// SetRootClient is a NOOP for this stub
+func (noInboxClient) SetRootClient(streams.Client) {}
+
+// Save is a NOOP for this stub
+func (noInboxClient) Save(streams.Document) error { return nil }
+
+// Delete is a NOOP for this stub
+func (noInboxClient) Delete(string) error { return nil }
+
+// Load returns a collection with this URI as its ID
+func (noInboxClient) Load(uri string, _ ...any) (streams.Document, error) {
+	return streams.NewDocument(map[string]any{
+		vocab.PropertyID:   uri,
+		vocab.PropertyType: vocab.CoreTypeOrderedCollection,
+	}), nil
+}
+
+// TestSendOne_RecipientWithoutInbox confirms a recipient with no inbox is refused before
+// any request is built
+func TestSendOne_RecipientWithoutInbox(t *testing.T) {
+
+	privateKey, err := rsa.GenerateKey(rand.Reader, 2048)
+	require.NoError(t, err)
+
+	actor := NewActor("https://example.com/users/alice", privateKey, WithClient(noInboxClient{}))
+
+	err = actor.SendOne("https://example.com/users/alice/followers", mapof.Any{vocab.PropertyType: vocab.ActivityTypeCreate})
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "no inbox")
+}
+
+// TestSendOne_KeyCannotSign confirms nothing is sent unsigned
+func TestSendOne_KeyCannotSign(t *testing.T) {
+
+	recorder := newInboxRecorder(t)
+
+	actor := NewActor("https://example.com/users/alice", "not a key",
+		WithClient(mockClient{inboxURL: recorder.server.URL}),
+		WithAllowPrivateIPs(true))
+
+	err := actor.SendOne("https://remote.example.com/users/bob", mapof.Any{vocab.PropertyType: vocab.ActivityTypeCreate})
+	require.Error(t, err)
+	assert.Zero(t, recorder.count())
+}
+
+// lastRaw returns the most recent request body as it arrived, or an empty string
+func (r *inboxRecorder) lastRaw() string {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	if len(r.raw) == 0 {
+		return ""
+	}
+	return r.raw[len(r.raw)-1]
 }

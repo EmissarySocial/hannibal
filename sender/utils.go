@@ -2,11 +2,13 @@ package sender
 
 import (
 	"iter"
+	"time"
 
 	"github.com/benpate/derp"
 	"github.com/benpate/hannibal/vocab"
 	"github.com/benpate/rosetta/mapof"
 	"github.com/benpate/rosetta/ranges"
+	"github.com/benpate/turbine/queue"
 	"github.com/rs/zerolog"
 )
 
@@ -55,4 +57,40 @@ func canDebug() bool {
 // for instance: marshalling a JSON object for logging.
 func canLog(level zerolog.Level) bool {
 	return zerolog.GlobalLevel() <= level
+}
+
+// activityName returns the detail that names an activity in an error.
+// RULE: An error never carries the activity itself, which holds its blind recipients.
+func activityName(activity mapof.Any) string {
+	return "activityID: " + activity.GetString(vocab.PropertyID) + ", actorID: " + activity.GetString(vocab.PropertyActor)
+}
+
+// actorResult returns what happens to a task whose sending actor could not be loaded
+func actorResult(err error, location string, detail string) queue.Result {
+
+	wrapped := derp.Wrap(err, location, "Unable to load the sending actor", detail)
+
+	// RULE: An actor that does not exist will not come back, so the task ends
+	if derp.IsNotFoundOrGone(err) {
+		return queue.Failure(wrapped)
+	}
+
+	// Any other error, such as a database that did not answer, may pass
+	return queue.Error(wrapped)
+}
+
+// isExpired returns TRUE if a delivery was first queued longer ago than a delivery may wait.
+// A task that does not say when it was queued never expires.
+func isExpired(queuedAt int64, now time.Time) bool {
+
+	if queuedAt <= 0 {
+		return false
+	}
+
+	return now.Sub(time.Unix(queuedAt, 0)) > maximumDeliveryAge
+}
+
+// requeueDelay returns how long a rescheduled delivery waits, within the shortest and longest waits allowed
+func requeueDelay(retryAfter time.Duration) time.Duration {
+	return min(max(retryAfter, minimumRequeueDelay), maximumRequeueDelay)
 }

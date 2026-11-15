@@ -6,6 +6,7 @@ package sender
 
 import (
 	"encoding/json"
+	"time"
 
 	"github.com/benpate/derp"
 	"github.com/benpate/hannibal/delivery"
@@ -83,7 +84,7 @@ func (sender Sender) Send(activity mapof.Any) error {
 	task := queue.NewTask(OutboxSendToAllRecipients, activity)
 
 	if err := sender.queue.Publish(task); err != nil {
-		return derp.Wrap(err, location, "Unable to enqueue outbound activity", activity)
+		return derp.Wrap(err, location, "Unable to enqueue outbound activity", activityName(activity))
 	}
 
 	// Success!
@@ -101,14 +102,14 @@ func (sender *Sender) SendToAllRecipients(activity mapof.Any) queue.Result {
 	actor, err := sender.locator.Actor(actorID)
 
 	if err != nil {
-		return queue.Failure(derp.Wrap(err, location, "Unable to locate actor", activity))
+		return actorResult(err, location, activityName(activity))
 	}
 
 	// Use the Locator to resolve recipient URIs into inbox URLs
 	recipients, err := getRecipients(sender.locator, activity)
 
 	if err != nil {
-		return queue.Error(derp.Wrap(err, location, "Unable to retrieve recipient addresses"))
+		return queue.Error(derp.Wrap(err, location, "Unable to retrieve recipient addresses", activityName(activity)))
 	}
 
 	// Remove duplicate recipient inbox URLs
@@ -116,16 +117,21 @@ func (sender *Sender) SendToAllRecipients(activity mapof.Any) queue.Result {
 
 	// RULE: No recipient may see who was blind-copied. An embedded object can name blind
 	// recipients of its own, so `bto` and `bcc` are removed at every level, from a copy.
-	stripped := delivery.StripBlindRecipients(activity)
+	stripped, err := delivery.StripBlindRecipients(activity)
+
+	if err != nil {
+		return queue.Failure(derp.Wrap(err, location, "Unable to remove blind recipients", activityName(activity)))
+	}
 
 	// Serialize the activity once, so every recipient's task shares the same string
 	serialized, err := json.Marshal(stripped)
 
 	if err != nil {
-		return queue.Failure(derp.Wrap(err, location, "Unable to serialize outbound activity"))
+		return queue.Failure(derp.Wrap(err, location, "Unable to serialize outbound activity", activityName(activity)))
 	}
 
 	body := string(serialized)
+	queuedAt := time.Now().Unix()
 
 	// Enqueue additional tasks to send this Activity to each recipient's inboxURL
 	for recipient := range recipients {
@@ -141,6 +147,9 @@ func (sender *Sender) SendToAllRecipients(activity mapof.Any) queue.Result {
 			"actor": actor.ActorID(),
 			"inbox": recipient,
 			"body":  body,
+
+			// When the delivery was first queued, which outlasts a reschedule
+			argumentQueuedAt: queuedAt,
 		})
 
 		if err := sender.queue.Publish(task); err != nil {
@@ -167,7 +176,7 @@ func (sender *Sender) SendToSingleRecipient(args mapof.Any) queue.Result {
 	actor, err := sender.locator.Actor(actorID)
 
 	if err != nil {
-		return queue.Failure(derp.Wrap(err, location, "Unable to retrieve actor for outbound activity", "actorID: "+actorID))
+		return actorResult(err, location, "actorID: "+actorID)
 	}
 
 	// Prepare a transaction to send to target Actor's inbox
@@ -197,7 +206,14 @@ func (sender *Sender) SendToSingleRecipient(args mapof.Any) queue.Result {
 
 		// Special handling for HTTP 429 (Too Many Requests) error
 		if tooManyRequests, retryDuration := derp.IsTooManyRequests(err); tooManyRequests {
-			return queue.Requeue(retryDuration)
+
+			// RULE: A reschedule spends no retry, so only its age can end a delivery to a host
+			// that never stops limiting it
+			if isExpired(args.GetInt64(argumentQueuedAt), time.Now()) {
+				return queue.Failure(derp.Wrap(err, location, "Host has rate limited this delivery for too long", "inboxURL: "+inboxURL))
+			}
+
+			return queue.Requeue(requeueDelay(retryDuration))
 		}
 
 		// If this is our fault then it can't be retried. Fail accordingly.
