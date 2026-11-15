@@ -25,6 +25,17 @@ const minimumRequeueDelay = time.Second
 // maximumRequeueDelay is the longest wait that a host can ask of a rescheduled delivery
 const maximumRequeueDelay = time.Hour
 
+// maximumDeliveryAge is how long a host may keep rescheduling one delivery with a rate limit.
+// It matches the span that the retries of a failing delivery cover.
+const maximumDeliveryAge = 7 * 24 * time.Hour
+
+// maxReplyParents bounds how many posts a send task loads to learn who wrote them
+const maxReplyParents = 4
+
+// argumentQueuedAt names the send task argument that holds when the delivery was first queued,
+// in Unix seconds. It outlasts a reschedule, which the task's own counters do not.
+const argumentQueuedAt = "queuedAt"
+
 // Send delivers one activity to one recipient's own inbox. Its arguments are those that
 // FanOut queued: "actor", "recipient", and the serialized "body".
 func (pipeline Pipeline) Send(args mapof.Any) queue.Result {
@@ -43,7 +54,7 @@ func (pipeline Pipeline) Send(args mapof.Any) queue.Result {
 	signer, err := pipeline.signers(actorID)
 
 	if err != nil {
-		return queue.Failure(derp.Wrap(err, location, "Unable to locate actor", "actorID: "+actorID))
+		return signerResult(err, location, actorID)
 	}
 
 	// Find the actor to deliver to. Anything else ends the task here.
@@ -65,7 +76,21 @@ func (pipeline Pipeline) Send(args mapof.Any) queue.Result {
 	}
 
 	// Deliver, then choose what happens to the task
-	return pipeline.result(HostOf(inboxURL), pipeline.post(signer, inboxURL, body))
+	return pipeline.result(HostOf(inboxURL), args.GetInt64(argumentQueuedAt), pipeline.post(signer, inboxURL, body))
+}
+
+// signerResult returns what happens to a task whose signing actor could not be loaded
+func signerResult(err error, location string, actorID string) queue.Result {
+
+	wrapped := derp.Wrap(err, location, "Unable to load the signing actor", "actorID: "+actorID)
+
+	// RULE: An actor that does not exist will not come back, so the task ends
+	if derp.IsNotFoundOrGone(err) {
+		return queue.Failure(wrapped)
+	}
+
+	// Any other error, such as a database that did not answer, may pass
+	return queue.Error(wrapped)
 }
 
 // resolve finds the actor that a recipient URL stands for: the actor itself, or the owner of a
@@ -135,6 +160,12 @@ func (pipeline Pipeline) collectionOwner(collectionURL string, body string) (str
 			continue
 		}
 
+		// RULE: An actor owns only a collection on its own origin. Otherwise anyone the activity
+		// names could claim another actor's followers, and take the copy meant for that actor.
+		if uri.NotSameOrigin(collectionURL, candidate.ID()) {
+			continue
+		}
+
 		if candidate.Followers().ID() == collectionURL {
 			return candidate, true
 		}
@@ -164,10 +195,22 @@ func (pipeline Pipeline) ownerCandidates(collectionURL string, activity map[stri
 		}
 	}
 
-	// A reply to someone's post is the usual reason to name their followers
-	object, _ := stripValue(activity[vocab.PropertyObject]).(map[string]any)
+	// RULE: The Document is made without a client, so reading it loads nothing
+	document := streams.NewDocument(activity)
 
-	for _, parentURL := range referenceIDs(object[vocab.PropertyInReplyTo]) {
+	// A reply to someone's post is the usual reason to name their followers
+	var parentURLs []string
+
+	if object := document.Object(); object.IsMap() {
+		parentURLs = object.InReplyTo().IDs()
+	}
+
+	// RULE: The list of parents comes from the activity, so only the first few are loaded
+	if len(parentURLs) > maxReplyParents {
+		parentURLs = parentURLs[:maxReplyParents]
+	}
+
+	for _, parentURL := range parentURLs {
 
 		parent, err := pipeline.client.Load(parentURL)
 
@@ -175,12 +218,14 @@ func (pipeline Pipeline) ownerCandidates(collectionURL string, activity map[stri
 			continue
 		}
 
-		add(referenceIDs(parent.Map()[vocab.PropertyAttributedTo])...)
-		add(referenceIDs(parent.Map()[vocab.PropertyActor])...)
+		// RULE: The parent has a client, so its authors are read as IDs, which loads nothing.
+		// `Actor` would load each one.
+		add(parent.Get(vocab.PropertyAttributedTo).IDs()...)
+		add(parent.Get(vocab.PropertyActor).IDs()...)
 	}
 
 	// Otherwise the owner is often named beside their collection
-	for recipient := range Extract(activity) {
+	for recipient := range extract(document) {
 		if !recipient.IsPublic() {
 			add(recipient.URL)
 		}
@@ -209,7 +254,7 @@ func (pipeline Pipeline) post(signer Signer, inboxURL string, body string) error
 
 // result returns what happens to a send task after its delivery. It only reads the error: a
 // circuit breaker, if the application added one, has already recorded the outcome for itself.
-func (pipeline Pipeline) result(host string, sendError error) queue.Result {
+func (pipeline Pipeline) result(host string, queuedAt int64, sendError error) queue.Result {
 
 	const location = "hannibal.delivery.Pipeline.result"
 
@@ -226,6 +271,13 @@ func (pipeline Pipeline) result(host string, sendError error) queue.Result {
 	// RULE: A rate limit is not a failure. The delivery is rescheduled without spending a retry,
 	// for as long as the host asked. derp answers one minute when the host names no wait.
 	if isRateLimited, retryAfter := derp.IsTooManyRequests(sendError); isRateLimited {
+
+		// RULE: A reschedule spends no retry, so only its age can end a delivery to a host that
+		// never stops limiting it
+		if isExpired(queuedAt, time.Now()) {
+			return queue.Failure(derp.Wrap(sendError, location, "Host has rate limited this delivery for too long", "host: "+host))
+		}
+
 		return queue.Requeue(requeueDelay(retryAfter))
 	}
 
@@ -241,6 +293,17 @@ func (pipeline Pipeline) result(host string, sendError error) queue.Result {
 
 	// RULE: Any other refusal is about this delivery, not about the host, and will not change on a retry
 	return queue.Failure(derp.Wrap(sendError, location, "Host refused the delivery", "host: "+host))
+}
+
+// isExpired returns TRUE if a delivery was first queued longer ago than a delivery may wait.
+// A task that does not say when it was queued never expires.
+func isExpired(queuedAt int64, now time.Time) bool {
+
+	if queuedAt <= 0 {
+		return false
+	}
+
+	return now.Sub(time.Unix(queuedAt, 0)) > maximumDeliveryAge
 }
 
 // requeueDelay returns how long a rescheduled delivery waits, within the shortest and longest waits allowed
