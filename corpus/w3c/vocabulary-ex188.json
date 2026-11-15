@@ -1,0 +1,64 @@
+
+{
+"@context": "https://www.w3.org/ns/activitystreams",
+"summary": "Sally and John's relationship history",
+"type": "Collection",
+"items": [
+{
+ "summary": "John accepted Sally's friend request",
+ "id": "http://example.org/activities/122",
+ "type": "Accept",
+ "actor": "acct:john@example.org",
+ "object": "http://example.org/connection-requests/123",
+ "inReplyTo": "http://example.org/connection-requests/123",
+ "context": "http://example.org/connections/123",
+ "result": [
+   "http://example.org/activities/123",
+   "http://example.org/activities/124",
+   "http://example.org/activities/125",
+   "http://example.org/activities/126"
+ ]
+},
+{
+ "summary": "John followed Sally",
+ "id": "http://example.org/activities/123",
+ "type": "Follow",
+ "actor": "acct:john@example.org",
+ "object": "acct:sally@example.org",
+ "context": "http://example.org/connections/123"
+},
+{
+ "summary": "Sally followed John",
+ "id": "http://example.org/activities/124",
+ "type": "Follow",
+ "actor": "acct:sally@example.org",
+ "object": "acct:john@example.org",
+ "context": "http://example.org/connections/123"
+},
+{
+ "summary": "John added Sally to his friends list",
+ "id": "http://example.org/activities/125",
+ "type": "Add",
+ "actor": "acct:john@example.org",
+ "object": "http://example.org/connections/123",
+ "target": {
+   "type": "Collection",
+   "summary": "John's Connections"
+ },
+ "context": "http://example.org/connections/123"
+},
+{
+ "summary": "Sally added John to her friends list",
+ "id": "http://example.org/activities/126",
+ "type": "Add",
+ "actor": "acct:sally@example.org",
+ "object": "http://example.org/connections/123",
+ "target": {
+   "type": "Collection",
+   "summary": "Sally's Connections"
+ },
+ "context": "http://example.org/connections/123"
+}
+]
+}
+     

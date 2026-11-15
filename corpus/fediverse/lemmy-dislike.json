@@ -1,0 +1,15 @@
+{
+  "source": "Lemmy 0.19: a downvote, which carries no addressing",
+  "recipients": [],
+  "activity": {
+    "@context": [
+      "https://join-lemmy.org/context.json",
+      "https://www.w3.org/ns/activitystreams"
+    ],
+    "id": "https://author.example.org/activities/dislike/3c2d1e0f-9a8b-7c6d-5e4f-3a2b1c0d9e8f",
+    "type": "Dislike",
+    "actor": "{{actor}}",
+    "object": "https://lemmy.example.org/post/77",
+    "audience": "https://lemmy.example.org/c/gardening"
+  }
+}

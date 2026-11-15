@@ -1,0 +1,21 @@
+{
+  "source": "Mastodon 4.x: a vote in another actor's poll",
+  "recipients": [
+    "https://mastodon.example.org/users/bob"
+  ],
+  "activity": {
+    "@context": "https://www.w3.org/ns/activitystreams",
+    "id": "{{actor}}#votes/77/activity",
+    "type": "Create",
+    "actor": "{{actor}}",
+    "to": "https://mastodon.example.org/users/bob",
+    "object": {
+      "id": "{{actor}}#votes/77",
+      "type": "Note",
+      "name": "Tomatoes",
+      "attributedTo": "{{actor}}",
+      "to": "https://mastodon.example.org/users/bob",
+      "inReplyTo": "https://mastodon.example.org/users/bob/statuses/113000000000000002"
+    }
+  }
+}

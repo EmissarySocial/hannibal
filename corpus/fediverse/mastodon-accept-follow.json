@@ -1,0 +1,16 @@
+{
+  "source": "Mastodon 4.x: an Accept of another actor's Follow",
+  "recipients": [],
+  "activity": {
+    "@context": "https://www.w3.org/ns/activitystreams",
+    "id": "{{actor}}#accepts/follows/12",
+    "type": "Accept",
+    "actor": "{{actor}}",
+    "object": {
+      "id": "https://mastodon.example.org/5e6f7a8b-9c0d-1e2f-3a4b-5c6d7e8f9a0b",
+      "type": "Follow",
+      "actor": "https://mastodon.example.org/users/bob",
+      "object": "{{actor}}"
+    }
+  }
+}

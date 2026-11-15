@@ -1,0 +1,75 @@
+{
+  "source": "Synthetic: blind recipients on every embedded object, and none on the activity",
+  "recipients": [
+    "https://mastodon.example.org/users/bob"
+  ],
+  "activity": {
+    "@context": "https://www.w3.org/ns/activitystreams",
+    "id": "{{actor}}/notes/2006/announce",
+    "type": "Announce",
+    "actor": "{{actor}}",
+    "to": [
+      "https://mastodon.example.org/users/bob"
+    ],
+    "object": {
+      "id": "{{actor}}/notes/2006/activity",
+      "type": "Create",
+      "actor": "{{actor}}",
+      "to": [
+        "https://mastodon.example.org/users/bob"
+      ],
+      "bto": [
+        "https://blind.example.org/users/frank"
+      ],
+      "object": {
+        "id": "{{actor}}/notes/2006",
+        "type": "Note",
+        "content": "nested",
+        "bcc": [
+          "https://blind.example.org/users/grace"
+        ],
+        "inReplyTo": {
+          "id": "https://mastodon.example.org/users/bob/statuses/9",
+          "type": "Note",
+          "bto": [
+            "https://blind.example.org/users/heidi"
+          ],
+          "bcc": "https://blind.example.org/users/frank"
+        },
+        "attachment": [
+          {
+            "type": "Image",
+            "url": "https://author.example.org/a.png",
+            "bcc": [
+              "https://blind.example.org/users/grace"
+            ]
+          }
+        ],
+        "tag": [
+          {
+            "type": "Mention",
+            "href": "https://mastodon.example.org/users/bob",
+            "bto": {
+              "id": "https://blind.example.org/users/heidi"
+            }
+          }
+        ],
+        "replies": {
+          "type": "Collection",
+          "items": [
+            {
+              "type": "Note",
+              "content": "reply",
+              "bto": [
+                "https://blind.example.org/users/frank"
+              ],
+              "bcc": [
+                "https://blind.example.org/users/grace"
+              ]
+            }
+          ]
+        }
+      }
+    }
+  }
+}

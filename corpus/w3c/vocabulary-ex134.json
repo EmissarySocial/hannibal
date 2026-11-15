@@ -1,0 +1,8 @@
+
+{
+  "@context": "https://www.w3.org/ns/activitystreams",
+  "type": "Video",
+  "name": "A Simple Video",
+  "url": "http://example.org/video.mkv",
+  "duration": "PT2H"
+}

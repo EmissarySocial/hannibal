@@ -1,0 +1,30 @@
+{
+  "source": "Pleroma 2.x: an emoji reaction",
+  "recipients": [
+    "{{followers}}",
+    "https://mastodon.example.org/users/bob"
+  ],
+  "activity": {
+    "@context": [
+      "https://www.w3.org/ns/activitystreams",
+      "https://author.example.org/schemas/litepub-0.1.jsonld",
+      {
+        "@language": "und"
+      }
+    ],
+    "id": "https://author.example.org/activities/4a3b2c1d-0e9f-8a7b-6c5d-4e3f2a1b0c9d",
+    "type": "EmojiReact",
+    "actor": "{{actor}}",
+    "content": "🔥",
+    "object": "https://mastodon.example.org/users/bob/statuses/113000000000000001",
+    "to": [
+      "{{followers}}",
+      "https://mastodon.example.org/users/bob"
+    ],
+    "cc": [
+      "https://www.w3.org/ns/activitystreams#Public"
+    ],
+    "context": "https://mastodon.example.org/contexts/abc",
+    "published": "2026-10-03T14:30:00.000000Z"
+  }
+}

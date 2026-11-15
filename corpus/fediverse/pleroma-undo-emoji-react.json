@@ -1,0 +1,27 @@
+{
+  "source": "Pleroma 2.x: an Undo that names the reaction by URL",
+  "recipients": [
+    "{{followers}}",
+    "https://mastodon.example.org/users/bob"
+  ],
+  "activity": {
+    "@context": [
+      "https://www.w3.org/ns/activitystreams",
+      "https://author.example.org/schemas/litepub-0.1.jsonld",
+      {
+        "@language": "und"
+      }
+    ],
+    "id": "https://author.example.org/activities/6c5d4e3f-2a1b-0c9d-8e7f-6a5b4c3d2e1f",
+    "type": "Undo",
+    "actor": "{{actor}}",
+    "object": "https://author.example.org/activities/4a3b2c1d-0e9f-8a7b-6c5d-4e3f2a1b0c9d",
+    "to": [
+      "{{followers}}",
+      "https://mastodon.example.org/users/bob"
+    ],
+    "cc": [
+      "https://www.w3.org/ns/activitystreams#Public"
+    ]
+  }
+}

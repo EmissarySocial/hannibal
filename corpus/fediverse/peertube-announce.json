@@ -1,0 +1,62 @@
+{
+  "source": "PeerTube 6.x: a channel sharing its own video",
+  "recipients": [
+    "{{followers}}"
+  ],
+  "activity": {
+    "@context": [
+      "https://www.w3.org/ns/activitystreams",
+      "https://w3id.org/security/v1",
+      {
+        "RsaSignature2017": "https://w3id.org/security#RsaSignature2017"
+      },
+      {
+        "pt": "https://joinpeertube.org/ns#",
+        "sc": "http://schema.org/",
+        "Hashtag": "as:Hashtag",
+        "uuid": "sc:identifier",
+        "category": "sc:category",
+        "licence": "sc:license",
+        "subtitleLanguage": "sc:subtitleLanguage",
+        "sensitive": "as:sensitive",
+        "language": "sc:inLanguage",
+        "views": "sc:Number",
+        "state": "sc:Number",
+        "size": "sc:Number",
+        "fps": "sc:Number",
+        "commentsEnabled": "sc:Boolean",
+        "downloadEnabled": "sc:Boolean",
+        "waitTranscoding": "sc:Boolean",
+        "support": "sc:Text",
+        "Infohash": "pt:Infohash",
+        "isLiveBroadcast": "sc:Boolean",
+        "likes": {
+          "@id": "as:likes",
+          "@type": "@id"
+        },
+        "dislikes": {
+          "@id": "as:dislikes",
+          "@type": "@id"
+        },
+        "shares": {
+          "@id": "as:shares",
+          "@type": "@id"
+        },
+        "comments": {
+          "@id": "as:comments",
+          "@type": "@id"
+        }
+      }
+    ],
+    "id": "https://author.example.org/videos/watch/2c3d4e5f-6a7b-8c9d-0e1f-2a3b4c5d6e7f/announces/1",
+    "type": "Announce",
+    "actor": "{{actor}}",
+    "to": [
+      "https://www.w3.org/ns/activitystreams#Public"
+    ],
+    "cc": [
+      "{{followers}}"
+    ],
+    "object": "https://author.example.org/videos/watch/2c3d4e5f-6a7b-8c9d-0e1f-2a3b4c5d6e7f"
+  }
+}

@@ -1,0 +1,28 @@
+{
+  "source": "Pleroma 2.x: a Like that is addressed",
+  "recipients": [
+    "https://mastodon.example.org/users/bob",
+    "{{followers}}"
+  ],
+  "activity": {
+    "@context": [
+      "https://www.w3.org/ns/activitystreams",
+      "https://author.example.org/schemas/litepub-0.1.jsonld",
+      {
+        "@language": "und"
+      }
+    ],
+    "id": "https://author.example.org/activities/5b4c3d2e-1f0a-9b8c-7d6e-5f4a3b2c1d0e",
+    "type": "Like",
+    "actor": "{{actor}}",
+    "object": "https://mastodon.example.org/users/bob/statuses/113000000000000001",
+    "to": [
+      "https://mastodon.example.org/users/bob",
+      "{{followers}}"
+    ],
+    "cc": [
+      "https://www.w3.org/ns/activitystreams#Public"
+    ],
+    "published": "2026-10-03T14:31:00.000000Z"
+  }
+}

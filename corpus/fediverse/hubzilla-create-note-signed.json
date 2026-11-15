@@ -1,0 +1,55 @@
+{
+  "source": "Hubzilla: a post with a linked-data signature and an integrity proof",
+  "recipients": [
+    "{{followers}}"
+  ],
+  "activity": {
+    "@context": [
+      "https://www.w3.org/ns/activitystreams",
+      "https://w3id.org/security/v1",
+      "https://w3id.org/security/data-integrity/v1",
+      {
+        "zot": "https://author.example.org/apschema#",
+        "commentPolicy": "zot:commentPolicy"
+      }
+    ],
+    "id": "https://author.example.org/activity/aaaa1111-bbbb-2222-cccc-3333dddd4444",
+    "type": "Create",
+    "actor": "{{actor}}",
+    "published": "2026-10-03T14:21:07Z",
+    "to": [
+      "https://www.w3.org/ns/activitystreams#Public"
+    ],
+    "cc": [
+      "{{followers}}"
+    ],
+    "object": {
+      "id": "https://author.example.org/item/aaaa1111-bbbb-2222-cccc-3333dddd4444",
+      "type": "Note",
+      "attributedTo": "{{actor}}",
+      "content": "Signed twice over.",
+      "commentPolicy": "authenticated",
+      "published": "2026-10-03T14:21:07Z",
+      "to": [
+        "https://www.w3.org/ns/activitystreams#Public"
+      ],
+      "cc": [
+        "{{followers}}"
+      ]
+    },
+    "proof": {
+      "type": "DataIntegrityProof",
+      "cryptosuite": "eddsa-jcs-2022",
+      "created": "2026-10-03T14:21:07Z",
+      "verificationMethod": "{{actor}}#z6MkrJVnaZkeFzdQyMZu1cgjg7k1pZZ6pvBQ7XJPt4swbTQ2",
+      "proofPurpose": "assertionMethod",
+      "proofValue": "z3sXaxjKs4M3BRicwWA9peyNPJvJqxtGsDmpt1jjoHCjgeUf71TRFz56osPSfDErszyLp5Ks1EhYSgpDaNM977Rg2"
+    },
+    "signature": {
+      "type": "RsaSignature2017",
+      "creator": "{{actor}}#main-key",
+      "created": "2026-10-03T14:21:07Z",
+      "signatureValue": "dGhpcyBpcyBub3QgYSByZWFsIHNpZ25hdHVyZQ=="
+    }
+  }
+}

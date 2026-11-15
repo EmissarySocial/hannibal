@@ -1,0 +1,22 @@
+{
+  "source": "Mastodon 4.x: a boost",
+  "recipients": [
+    "https://mastodon.example.org/users/bob",
+    "{{followers}}"
+  ],
+  "activity": {
+    "@context": "https://www.w3.org/ns/activitystreams",
+    "id": "{{actor}}/statuses/1008/activity",
+    "type": "Announce",
+    "actor": "{{actor}}",
+    "published": "2026-10-03T15:00:00Z",
+    "to": [
+      "https://www.w3.org/ns/activitystreams#Public"
+    ],
+    "cc": [
+      "https://mastodon.example.org/users/bob",
+      "{{followers}}"
+    ],
+    "object": "https://mastodon.example.org/users/bob/statuses/113000000000000001"
+  }
+}

@@ -1,0 +1,115 @@
+{
+  "source": "Mastodon 4.x: a public reply that mentions two actors, with a hashtag and a custom emoji",
+  "recipients": [
+    "{{followers}}",
+    "https://mastodon.example.org/users/bob",
+    "https://pleroma.example.org/users/carol"
+  ],
+  "activity": {
+    "@context": [
+      "https://www.w3.org/ns/activitystreams",
+      {
+        "ostatus": "http://ostatus.org#",
+        "atomUri": "ostatus:atomUri",
+        "inReplyToAtomUri": "ostatus:inReplyToAtomUri",
+        "conversation": "ostatus:conversation",
+        "sensitive": "as:sensitive",
+        "toot": "http://joinmastodon.org/ns#",
+        "votersCount": "toot:votersCount",
+        "blurhash": "toot:blurhash",
+        "focalPoint": {
+          "@container": "@list",
+          "@id": "toot:focalPoint"
+        },
+        "Hashtag": "as:Hashtag",
+        "Emoji": "toot:Emoji"
+      }
+    ],
+    "id": "{{actor}}/statuses/1005/activity",
+    "type": "Create",
+    "actor": "{{actor}}",
+    "published": "2026-10-03T14:21:07Z",
+    "to": [
+      "https://www.w3.org/ns/activitystreams#Public"
+    ],
+    "cc": [
+      "{{followers}}",
+      "https://mastodon.example.org/users/bob",
+      "https://pleroma.example.org/users/carol"
+    ],
+    "object": {
+      "id": "{{actor}}/statuses/1005",
+      "type": "Note",
+      "summary": null,
+      "inReplyTo": "https://mastodon.example.org/users/bob/statuses/113000000000000001",
+      "published": "2026-10-03T14:21:07Z",
+      "url": "https://author.example.org/@author/1005",
+      "attributedTo": "{{actor}}",
+      "to": [
+        "https://www.w3.org/ns/activitystreams#Public"
+      ],
+      "cc": [
+        "{{followers}}",
+        "https://mastodon.example.org/users/bob",
+        "https://pleroma.example.org/users/carol"
+      ],
+      "sensitive": false,
+      "atomUri": "{{actor}}/statuses/1005",
+      "inReplyToAtomUri": "https://mastodon.example.org/users/bob/statuses/113000000000000001",
+      "conversation": "tag:author.example.org,2026-10-03:objectId=1005:objectType=Conversation",
+      "content": "<p>@bob @carol agreed :blobcat: <a href=\"https://author.example.org/tags/gardening\" class=\"mention hashtag\" rel=\"tag\">#<span>gardening</span></a></p>",
+      "contentMap": {
+        "en": "<p>@bob @carol agreed :blobcat: <a href=\"https://author.example.org/tags/gardening\" class=\"mention hashtag\" rel=\"tag\">#<span>gardening</span></a></p>"
+      },
+      "attachment": [],
+      "tag": [
+        {
+          "type": "Mention",
+          "href": "https://mastodon.example.org/users/bob",
+          "name": "@bob@mastodon.example.org"
+        },
+        {
+          "type": "Mention",
+          "href": "https://pleroma.example.org/users/carol",
+          "name": "@carol@pleroma.example.org"
+        },
+        {
+          "type": "Hashtag",
+          "href": "https://author.example.org/tags/gardening",
+          "name": "#gardening"
+        },
+        {
+          "id": "https://author.example.org/emojis/42",
+          "type": "Emoji",
+          "name": ":blobcat:",
+          "updated": "2026-01-02T03:04:05Z",
+          "icon": {
+            "type": "Image",
+            "mediaType": "image/png",
+            "url": "https://author.example.org/system/custom_emojis/images/000/000/042/original/blobcat.png"
+          }
+        }
+      ],
+      "replies": {
+        "id": "{{actor}}/statuses/1005/replies",
+        "type": "Collection",
+        "first": {
+          "type": "CollectionPage",
+          "next": "{{actor}}/statuses/1005/replies?only_other_accounts=true&page=true",
+          "partOf": "{{actor}}/statuses/1005/replies",
+          "items": []
+        }
+      },
+      "likes": {
+        "id": "{{actor}}/statuses/1005/likes",
+        "type": "Collection",
+        "totalItems": 0
+      },
+      "shares": {
+        "id": "{{actor}}/statuses/1005/shares",
+        "type": "Collection",
+        "totalItems": 0
+      }
+    }
+  }
+}

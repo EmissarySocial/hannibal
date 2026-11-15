@@ -1,0 +1,61 @@
+{
+  "source": "WordPress ActivityPub plugin: an edited post",
+  "recipients": [
+    "{{followers}}"
+  ],
+  "activity": {
+    "@context": [
+      "https://www.w3.org/ns/activitystreams",
+      {
+        "Hashtag": "as:Hashtag",
+        "sensitive": "as:sensitive"
+      }
+    ],
+    "id": "https://author.example.org/?p=881#activity-update-2026-10-03T16:00:00Z",
+    "type": "Update",
+    "actor": "{{actor}}",
+    "published": "2026-10-03T16:00:00Z",
+    "to": [
+      "https://www.w3.org/ns/activitystreams#Public"
+    ],
+    "cc": [
+      "{{followers}}"
+    ],
+    "object": {
+      "id": "https://author.example.org/?p=881",
+      "type": "Article",
+      "attributedTo": "{{actor}}",
+      "name": "Autumn planting calendar",
+      "summary": "<p>What to sow, month by month.</p>",
+      "content": "<p>September: garlic &amp; broad beans.</p>\n<p>October: onions.</p>",
+      "contentMap": {
+        "en": "<p>September: garlic &amp; broad beans.</p>\n<p>October: onions.</p>"
+      },
+      "mediaType": "text/html",
+      "published": "2026-09-28T09:00:00Z",
+      "updated": "2026-10-03T16:00:00Z",
+      "url": "https://author.example.org/2026/09/autumn-planting-calendar/",
+      "to": [
+        "https://www.w3.org/ns/activitystreams#Public"
+      ],
+      "cc": [
+        "{{followers}}"
+      ],
+      "attachment": [
+        {
+          "type": "Image",
+          "url": "https://author.example.org/wp-content/uploads/2026/09/beds.jpg",
+          "mediaType": "image/jpeg",
+          "name": "Empty beds"
+        }
+      ],
+      "tag": [
+        {
+          "type": "Hashtag",
+          "href": "https://author.example.org/tag/autumn/",
+          "name": "#autumn"
+        }
+      ]
+    }
+  }
+}

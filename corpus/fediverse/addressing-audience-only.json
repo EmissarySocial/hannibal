@@ -1,0 +1,19 @@
+{
+  "source": "Synthetic: an activity that names its readers in audience alone",
+  "recipients": [],
+  "activity": {
+    "@context": "https://www.w3.org/ns/activitystreams",
+    "id": "{{actor}}/notes/3009/activity",
+    "type": "Create",
+    "actor": "{{actor}}",
+    "audience": [
+      "https://mastodon.example.org/users/bob",
+      "{{followers}}"
+    ],
+    "object": {
+      "id": "{{actor}}/notes/3009",
+      "type": "Note",
+      "content": "audience is not addressing"
+    }
+  }
+}

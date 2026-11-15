@@ -1,0 +1,49 @@
+{
+  "source": "Synthetic: one actor named in to, cc and bcc, and the followers collection named twice",
+  "recipients": [
+    "https://mastodon.example.org/users/bob",
+    "{{followers}}",
+    "https://pleroma.example.org/users/carol"
+  ],
+  "activity": {
+    "@context": "https://www.w3.org/ns/activitystreams",
+    "id": "{{actor}}/notes/3003/activity",
+    "type": "Create",
+    "actor": "{{actor}}",
+    "to": [
+      "https://mastodon.example.org/users/bob",
+      "{{followers}}",
+      "https://mastodon.example.org/users/bob"
+    ],
+    "cc": [
+      "https://mastodon.example.org/users/bob",
+      "{{followers}}",
+      "https://pleroma.example.org/users/carol"
+    ],
+    "bcc": [
+      "https://mastodon.example.org/users/bob",
+      "https://pleroma.example.org/users/carol"
+    ],
+    "object": {
+      "id": "{{actor}}/notes/3003",
+      "type": "Note",
+      "attributedTo": "{{actor}}",
+      "content": "<p>For a few people only</p>",
+      "published": "2026-10-03T14:21:07Z",
+      "to": [
+        "https://mastodon.example.org/users/bob",
+        "{{followers}}",
+        "https://mastodon.example.org/users/bob"
+      ],
+      "cc": [
+        "https://mastodon.example.org/users/bob",
+        "{{followers}}",
+        "https://pleroma.example.org/users/carol"
+      ],
+      "bcc": [
+        "https://mastodon.example.org/users/bob",
+        "https://pleroma.example.org/users/carol"
+      ]
+    }
+  }
+}

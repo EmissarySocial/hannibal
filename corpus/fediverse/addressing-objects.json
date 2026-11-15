@@ -1,0 +1,35 @@
+{
+  "source": "Synthetic: recipients written as embedded objects, one of them without an id",
+  "recipients": [
+    "https://mastodon.example.org/users/bob",
+    "https://pleroma.example.org/users/carol",
+    "https://misskey.example.org/users/9abcdefghi"
+  ],
+  "activity": {
+    "@context": "https://www.w3.org/ns/activitystreams",
+    "id": "{{actor}}/notes/3002/activity",
+    "type": "Create",
+    "actor": "{{actor}}",
+    "to": [
+      {
+        "id": "https://mastodon.example.org/users/bob",
+        "type": "Person",
+        "name": "Bob"
+      },
+      {
+        "type": "Person",
+        "name": "No id at all"
+      },
+      "https://pleroma.example.org/users/carol"
+    ],
+    "cc": {
+      "id": "https://misskey.example.org/users/9abcdefghi",
+      "type": "Person"
+    },
+    "object": {
+      "id": "{{actor}}/notes/3002",
+      "type": "Note",
+      "content": "objects as recipients"
+    }
+  }
+}

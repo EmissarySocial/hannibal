@@ -1,0 +1,38 @@
+{
+  "source": "ActivityPub client-to-server: a public post with one extra, undisclosed recipient",
+  "recipients": [
+    "{{followers}}",
+    "https://blind.example.org/users/frank"
+  ],
+  "activity": {
+    "@context": "https://www.w3.org/ns/activitystreams",
+    "id": "{{actor}}/notes/2005/activity",
+    "type": "Create",
+    "actor": "{{actor}}",
+    "to": [
+      "https://www.w3.org/ns/activitystreams#Public"
+    ],
+    "cc": [
+      "{{followers}}"
+    ],
+    "bcc": [
+      "https://blind.example.org/users/frank"
+    ],
+    "object": {
+      "id": "{{actor}}/notes/2005",
+      "type": "Note",
+      "attributedTo": "{{actor}}",
+      "content": "<p>For a few people only</p>",
+      "published": "2026-10-03T14:21:07Z",
+      "to": [
+        "https://www.w3.org/ns/activitystreams#Public"
+      ],
+      "cc": [
+        "{{followers}}"
+      ],
+      "bcc": [
+        "https://blind.example.org/users/frank"
+      ]
+    }
+  }
+}

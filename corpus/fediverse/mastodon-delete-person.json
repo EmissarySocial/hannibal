@@ -1,0 +1,20 @@
+{
+  "source": "Mastodon 4.x: an account deletion, with a linked-data signature",
+  "recipients": [],
+  "activity": {
+    "@context": "https://www.w3.org/ns/activitystreams",
+    "id": "{{actor}}#delete",
+    "type": "Delete",
+    "actor": "{{actor}}",
+    "to": [
+      "https://www.w3.org/ns/activitystreams#Public"
+    ],
+    "object": "{{actor}}",
+    "signature": {
+      "type": "RsaSignature2017",
+      "creator": "{{actor}}#main-key",
+      "created": "2026-10-03T17:00:00Z",
+      "signatureValue": "dGhpcyBpcyBub3QgYSByZWFsIHNpZ25hdHVyZQ=="
+    }
+  }
+}

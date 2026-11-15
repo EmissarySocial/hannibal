@@ -1,0 +1,58 @@
+{
+  "source": "Lemmy 0.19: a post to a community",
+  "recipients": [
+    "https://lemmy.example.org/c/gardening"
+  ],
+  "activity": {
+    "@context": [
+      "https://join-lemmy.org/context.json",
+      "https://www.w3.org/ns/activitystreams"
+    ],
+    "id": "https://author.example.org/activities/create/0f1e2d3c-4b5a-6978-8695-a4b3c2d1e0f9",
+    "type": "Create",
+    "actor": "{{actor}}",
+    "to": [
+      "https://lemmy.example.org/c/gardening",
+      "https://www.w3.org/ns/activitystreams#Public"
+    ],
+    "cc": [],
+    "audience": "https://lemmy.example.org/c/gardening",
+    "object": {
+      "id": "https://author.example.org/post/4242",
+      "type": "Page",
+      "attributedTo": "{{actor}}",
+      "to": [
+        "https://lemmy.example.org/c/gardening",
+        "https://www.w3.org/ns/activitystreams#Public"
+      ],
+      "cc": [],
+      "audience": "https://lemmy.example.org/c/gardening",
+      "name": "First tomatoes of the year",
+      "content": "<p>They finally ripened.</p>\n",
+      "mediaType": "text/html",
+      "source": {
+        "content": "They finally ripened.",
+        "mediaType": "text/markdown"
+      },
+      "attachment": [
+        {
+          "href": "https://author.example.org/pictrs/image/abc.jpeg",
+          "mediaType": "image/jpeg",
+          "type": "Image"
+        }
+      ],
+      "image": {
+        "type": "Image",
+        "url": "https://author.example.org/pictrs/image/thumb.jpeg"
+      },
+      "sensitive": false,
+      "commentsEnabled": true,
+      "stickied": false,
+      "language": {
+        "identifier": "en",
+        "name": "English"
+      },
+      "published": "2026-10-03T14:21:07.123456Z"
+    }
+  }
+}

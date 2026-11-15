@@ -1,0 +1,24 @@
+{
+  "source": "Synthetic: to and cc written as one string each",
+  "recipients": [
+    "https://mastodon.example.org/users/bob",
+    "{{followers}}"
+  ],
+  "activity": {
+    "@context": "https://www.w3.org/ns/activitystreams",
+    "id": "{{actor}}/notes/3001/activity",
+    "type": "Create",
+    "actor": "{{actor}}",
+    "to": "https://mastodon.example.org/users/bob",
+    "cc": "{{followers}}",
+    "object": {
+      "id": "{{actor}}/notes/3001",
+      "type": "Note",
+      "attributedTo": "{{actor}}",
+      "content": "<p>For a few people only</p>",
+      "published": "2026-10-03T14:21:07Z",
+      "to": "https://mastodon.example.org/users/bob",
+      "cc": "{{followers}}"
+    }
+  }
+}

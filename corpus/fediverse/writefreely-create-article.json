@@ -1,0 +1,42 @@
+{
+  "source": "WriteFreely: a blog post",
+  "recipients": [
+    "{{followers}}"
+  ],
+  "activity": {
+    "@context": [
+      "https://www.w3.org/ns/activitystreams"
+    ],
+    "id": "https://author.example.org/api/posts/abc123xyz",
+    "type": "Create",
+    "actor": "{{actor}}",
+    "to": [
+      "https://www.w3.org/ns/activitystreams#Public"
+    ],
+    "cc": [
+      "{{followers}}"
+    ],
+    "object": {
+      "id": "https://author.example.org/api/posts/abc123xyz",
+      "type": "Article",
+      "attributedTo": "{{actor}}",
+      "to": [
+        "https://www.w3.org/ns/activitystreams#Public"
+      ],
+      "cc": [
+        "{{followers}}"
+      ],
+      "name": "Notes on compost",
+      "content": "<p>Turn it weekly. <a href=\"https://author.example.org/garden/tag:compost\" class=\"hashtag\" rel=\"tag\"><span>#</span><span class=\"p-category\">compost</span></a></p>",
+      "published": "2026-10-03T14:21:07Z",
+      "url": "https://author.example.org/garden/notes-on-compost",
+      "tag": [
+        {
+          "type": "Hashtag",
+          "href": "https://author.example.org/garden/tag:compost",
+          "name": "#compost"
+        }
+      ]
+    }
+  }
+}

@@ -1,0 +1,75 @@
+{
+  "source": "Funkwhale 1.4: an upload published to a library",
+  "recipients": [
+    "{{followers}}"
+  ],
+  "activity": {
+    "@context": [
+      "https://www.w3.org/ns/activitystreams",
+      "https://w3id.org/security/v1",
+      "https://funkwhale.audio/ns",
+      {
+        "manuallyApprovesFollowers": "as:manuallyApprovesFollowers",
+        "Hashtag": "as:Hashtag"
+      }
+    ],
+    "id": "https://author.example.org/federation/music/uploads/0a1b2c3d-4e5f-6a7b-8c9d-0e1f2a3b4c5d/activity",
+    "type": "Create",
+    "actor": "{{actor}}",
+    "to": [
+      "{{followers}}"
+    ],
+    "object": {
+      "id": "https://author.example.org/federation/music/uploads/0a1b2c3d-4e5f-6a7b-8c9d-0e1f2a3b4c5d",
+      "type": "Audio",
+      "name": "The Author - Rain on the Greenhouse",
+      "library": "https://author.example.org/federation/music/libraries/9f8e7d6c-5b4a-3928-1706-f5e4d3c2b1a0",
+      "published": "2026-10-03T14:21:07+00:00",
+      "bitrate": 320000,
+      "size": 8421376,
+      "duration": 211,
+      "url": {
+        "href": "https://author.example.org/api/v1/listen/1a2b3c4d/",
+        "type": "Link",
+        "mediaType": "audio/mpeg"
+      },
+      "track": {
+        "id": "https://author.example.org/federation/music/tracks/1a2b3c4d",
+        "type": "Track",
+        "name": "Rain on the Greenhouse",
+        "position": 3,
+        "disc": 1,
+        "musicbrainzId": null,
+        "license": "https://creativecommons.org/licenses/by-sa/4.0/",
+        "copyright": "© 2026 The Author",
+        "artists": [
+          {
+            "id": "https://author.example.org/federation/music/artists/77",
+            "type": "Artist",
+            "name": "The Author",
+            "musicbrainzId": null
+          }
+        ],
+        "album": {
+          "id": "https://author.example.org/federation/music/albums/12",
+          "type": "Album",
+          "name": "Field Recordings",
+          "released": "2026-09-01",
+          "artists": [
+            {
+              "id": "https://author.example.org/federation/music/artists/77",
+              "type": "Artist",
+              "name": "The Author",
+              "musicbrainzId": null
+            }
+          ],
+          "cover": {
+            "type": "Link",
+            "href": "https://author.example.org/media/albums/covers/12.jpg",
+            "mediaType": "image/jpeg"
+          }
+        }
+      }
+    }
+  }
+}

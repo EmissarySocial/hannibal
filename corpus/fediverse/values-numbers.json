@@ -1,0 +1,58 @@
+{
+  "source": "Synthetic: integers, fractions, exponents, booleans, nulls and empty containers",
+  "recipients": [
+    "https://mastodon.example.org/users/bob"
+  ],
+  "activity": {
+    "@context": "https://www.w3.org/ns/activitystreams",
+    "id": "{{actor}}/notes/4002/activity",
+    "type": "Create",
+    "actor": "{{actor}}",
+    "to": [
+      "https://mastodon.example.org/users/bob"
+    ],
+    "object": {
+      "id": "{{actor}}/notes/4002",
+      "type": "Note",
+      "zero": 0,
+      "one": 1,
+      "negative": -17,
+      "fraction": 0.1,
+      "third": 0.3333333333333333,
+      "negativeFraction": -2.5,
+      "large": 9007199254740991,
+      "larger": 1e+21,
+      "tiny": 1e-07,
+      "int32Edge": 2147483648,
+      "int64Edge": 9223372036854775807,
+      "yes": true,
+      "no": false,
+      "nothing": null,
+      "emptyObject": {},
+      "emptyList": [],
+      "emptyString": "",
+      "nested": [
+        [],
+        [
+          []
+        ],
+        [
+          {}
+        ],
+        [
+          null
+        ],
+        [
+          0,
+          false,
+          "",
+          null
+        ]
+      ],
+      "latitude": 38.722252,
+      "longitude": -9.139337,
+      "accuracy": 94.5,
+      "altitude": -12
+    }
+  }
+}

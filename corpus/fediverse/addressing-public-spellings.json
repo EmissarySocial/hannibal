@@ -1,0 +1,41 @@
+{
+  "source": "Synthetic: the three spellings of Public, in to, cc and bcc",
+  "recipients": [
+    "https://mastodon.example.org/users/bob"
+  ],
+  "activity": {
+    "@context": "https://www.w3.org/ns/activitystreams",
+    "id": "{{actor}}/notes/3006/activity",
+    "type": "Create",
+    "actor": "{{actor}}",
+    "to": [
+      "as:Public"
+    ],
+    "cc": [
+      "Public",
+      "https://www.w3.org/ns/activitystreams#Public",
+      "https://mastodon.example.org/users/bob"
+    ],
+    "bcc": [
+      "https://www.w3.org/ns/activitystreams#Public"
+    ],
+    "object": {
+      "id": "{{actor}}/notes/3006",
+      "type": "Note",
+      "attributedTo": "{{actor}}",
+      "content": "<p>For a few people only</p>",
+      "published": "2026-10-03T14:21:07Z",
+      "to": [
+        "as:Public"
+      ],
+      "cc": [
+        "Public",
+        "https://www.w3.org/ns/activitystreams#Public",
+        "https://mastodon.example.org/users/bob"
+      ],
+      "bcc": [
+        "https://www.w3.org/ns/activitystreams#Public"
+      ]
+    }
+  }
+}

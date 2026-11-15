@@ -1,0 +1,36 @@
+{
+  "source": "Synthetic: recipients that are not web addresses, beside one that receives email",
+  "recipients": [
+    "mailto:erin@example.org",
+    "https://mastodon.example.org/users/bob"
+  ],
+  "activity": {
+    "@context": "https://www.w3.org/ns/activitystreams",
+    "id": "{{actor}}/notes/3005/activity",
+    "type": "Create",
+    "actor": "{{actor}}",
+    "to": [
+      "acct:bob@mastodon.example.org",
+      "urn:uuid:7b0f1c1e-2a3b-4c5d-8e9f-0a1b2c3d4e5f",
+      "",
+      "bob",
+      "mailto:erin@example.org",
+      null,
+      42,
+      true,
+      3.5,
+      [
+        "https://mastodon.example.org/users/bob"
+      ],
+      {}
+    ],
+    "cc": [
+      "https://mastodon.example.org/users/bob"
+    ],
+    "object": {
+      "id": "{{actor}}/notes/3005",
+      "type": "Note",
+      "content": "odd recipients"
+    }
+  }
+}

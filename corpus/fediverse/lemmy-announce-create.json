@@ -1,0 +1,53 @@
+{
+  "source": "Lemmy 0.19: a community that relays a member's post, three activities deep",
+  "recipients": [
+    "{{followers}}"
+  ],
+  "activity": {
+    "@context": [
+      "https://join-lemmy.org/context.json",
+      "https://www.w3.org/ns/activitystreams"
+    ],
+    "id": "https://author.example.org/activities/announce/create/5e4f3a2b-1c0d-9e8f-7a6b-5c4d3e2f1a0b",
+    "type": "Announce",
+    "actor": "{{actor}}",
+    "to": [
+      "https://www.w3.org/ns/activitystreams#Public"
+    ],
+    "cc": [
+      "{{followers}}"
+    ],
+    "object": {
+      "id": "https://mastodon.example.org/activities/create/6f5a4b3c-2d1e-0f9a-8b7c-6d5e4f3a2b1c",
+      "type": "Create",
+      "actor": "https://mastodon.example.org/users/bob",
+      "to": [
+        "{{actor}}",
+        "https://www.w3.org/ns/activitystreams#Public"
+      ],
+      "cc": [],
+      "audience": "{{actor}}",
+      "object": {
+        "id": "https://mastodon.example.org/post/31337",
+        "type": "Page",
+        "attributedTo": "https://mastodon.example.org/users/bob",
+        "to": [
+          "{{actor}}",
+          "https://www.w3.org/ns/activitystreams#Public"
+        ],
+        "cc": [],
+        "audience": "{{actor}}",
+        "name": "Seed swap this weekend",
+        "content": "<p>Bring envelopes.</p>\n",
+        "mediaType": "text/html",
+        "source": {
+          "content": "Bring envelopes.",
+          "mediaType": "text/markdown"
+        },
+        "sensitive": false,
+        "commentsEnabled": true,
+        "published": "2026-10-03T13:00:00.000000Z"
+      }
+    }
+  }
+}

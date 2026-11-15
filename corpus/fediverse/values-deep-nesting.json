@@ -1,0 +1,492 @@
+{
+  "source": "Synthetic: a thread embedded sixty objects deep, each with a blind recipient",
+  "recipients": [
+    "https://mastodon.example.org/users/bob"
+  ],
+  "activity": {
+    "@context": "https://www.w3.org/ns/activitystreams",
+    "id": "{{actor}}/notes/4003/activity",
+    "type": "Create",
+    "actor": "{{actor}}",
+    "to": [
+      "https://mastodon.example.org/users/bob"
+    ],
+    "object": {
+      "id": "{{actor}}/notes/4003/59",
+      "type": "Note",
+      "content": "reply 59",
+      "inReplyTo": {
+        "id": "{{actor}}/notes/4003/58",
+        "type": "Note",
+        "content": "reply 58",
+        "inReplyTo": {
+          "id": "{{actor}}/notes/4003/57",
+          "type": "Note",
+          "content": "reply 57",
+          "inReplyTo": {
+            "id": "{{actor}}/notes/4003/56",
+            "type": "Note",
+            "content": "reply 56",
+            "inReplyTo": {
+              "id": "{{actor}}/notes/4003/55",
+              "type": "Note",
+              "content": "reply 55",
+              "inReplyTo": {
+                "id": "{{actor}}/notes/4003/54",
+                "type": "Note",
+                "content": "reply 54",
+                "inReplyTo": {
+                  "id": "{{actor}}/notes/4003/53",
+                  "type": "Note",
+                  "content": "reply 53",
+                  "inReplyTo": {
+                    "id": "{{actor}}/notes/4003/52",
+                    "type": "Note",
+                    "content": "reply 52",
+                    "inReplyTo": {
+                      "id": "{{actor}}/notes/4003/51",
+                      "type": "Note",
+                      "content": "reply 51",
+                      "inReplyTo": {
+                        "id": "{{actor}}/notes/4003/50",
+                        "type": "Note",
+                        "content": "reply 50",
+                        "inReplyTo": {
+                          "id": "{{actor}}/notes/4003/49",
+                          "type": "Note",
+                          "content": "reply 49",
+                          "inReplyTo": {
+                            "id": "{{actor}}/notes/4003/48",
+                            "type": "Note",
+                            "content": "reply 48",
+                            "inReplyTo": {
+                              "id": "{{actor}}/notes/4003/47",
+                              "type": "Note",
+                              "content": "reply 47",
+                              "inReplyTo": {
+                                "id": "{{actor}}/notes/4003/46",
+                                "type": "Note",
+                                "content": "reply 46",
+                                "inReplyTo": {
+                                  "id": "{{actor}}/notes/4003/45",
+                                  "type": "Note",
+                                  "content": "reply 45",
+                                  "inReplyTo": {
+                                    "id": "{{actor}}/notes/4003/44",
+                                    "type": "Note",
+                                    "content": "reply 44",
+                                    "inReplyTo": {
+                                      "id": "{{actor}}/notes/4003/43",
+                                      "type": "Note",
+                                      "content": "reply 43",
+                                      "inReplyTo": {
+                                        "id": "{{actor}}/notes/4003/42",
+                                        "type": "Note",
+                                        "content": "reply 42",
+                                        "inReplyTo": {
+                                          "id": "{{actor}}/notes/4003/41",
+                                          "type": "Note",
+                                          "content": "reply 41",
+                                          "inReplyTo": {
+                                            "id": "{{actor}}/notes/4003/40",
+                                            "type": "Note",
+                                            "content": "reply 40",
+                                            "inReplyTo": {
+                                              "id": "{{actor}}/notes/4003/39",
+                                              "type": "Note",
+                                              "content": "reply 39",
+                                              "inReplyTo": {
+                                                "id": "{{actor}}/notes/4003/38",
+                                                "type": "Note",
+                                                "content": "reply 38",
+                                                "inReplyTo": {
+                                                  "id": "{{actor}}/notes/4003/37",
+                                                  "type": "Note",
+                                                  "content": "reply 37",
+                                                  "inReplyTo": {
+                                                    "id": "{{actor}}/notes/4003/36",
+                                                    "type": "Note",
+                                                    "content": "reply 36",
+                                                    "inReplyTo": {
+                                                      "id": "{{actor}}/notes/4003/35",
+                                                      "type": "Note",
+                                                      "content": "reply 35",
+                                                      "inReplyTo": {
+                                                        "id": "{{actor}}/notes/4003/34",
+                                                        "type": "Note",
+                                                        "content": "reply 34",
+                                                        "inReplyTo": {
+                                                          "id": "{{actor}}/notes/4003/33",
+                                                          "type": "Note",
+                                                          "content": "reply 33",
+                                                          "inReplyTo": {
+                                                            "id": "{{actor}}/notes/4003/32",
+                                                            "type": "Note",
+                                                            "content": "reply 32",
+                                                            "inReplyTo": {
+                                                              "id": "{{actor}}/notes/4003/31",
+                                                              "type": "Note",
+                                                              "content": "reply 31",
+                                                              "inReplyTo": {
+                                                                "id": "{{actor}}/notes/4003/30",
+                                                                "type": "Note",
+                                                                "content": "reply 30",
+                                                                "inReplyTo": {
+                                                                  "id": "{{actor}}/notes/4003/29",
+                                                                  "type": "Note",
+                                                                  "content": "reply 29",
+                                                                  "inReplyTo": {
+                                                                    "id": "{{actor}}/notes/4003/28",
+                                                                    "type": "Note",
+                                                                    "content": "reply 28",
+                                                                    "inReplyTo": {
+                                                                      "id": "{{actor}}/notes/4003/27",
+                                                                      "type": "Note",
+                                                                      "content": "reply 27",
+                                                                      "inReplyTo": {
+                                                                        "id": "{{actor}}/notes/4003/26",
+                                                                        "type": "Note",
+                                                                        "content": "reply 26",
+                                                                        "inReplyTo": {
+                                                                          "id": "{{actor}}/notes/4003/25",
+                                                                          "type": "Note",
+                                                                          "content": "reply 25",
+                                                                          "inReplyTo": {
+                                                                            "id": "{{actor}}/notes/4003/24",
+                                                                            "type": "Note",
+                                                                            "content": "reply 24",
+                                                                            "inReplyTo": {
+                                                                              "id": "{{actor}}/notes/4003/23",
+                                                                              "type": "Note",
+                                                                              "content": "reply 23",
+                                                                              "inReplyTo": {
+                                                                                "id": "{{actor}}/notes/4003/22",
+                                                                                "type": "Note",
+                                                                                "content": "reply 22",
+                                                                                "inReplyTo": {
+                                                                                  "id": "{{actor}}/notes/4003/21",
+                                                                                  "type": "Note",
+                                                                                  "content": "reply 21",
+                                                                                  "inReplyTo": {
+                                                                                    "id": "{{actor}}/notes/4003/20",
+                                                                                    "type": "Note",
+                                                                                    "content": "reply 20",
+                                                                                    "inReplyTo": {
+                                                                                      "id": "{{actor}}/notes/4003/19",
+                                                                                      "type": "Note",
+                                                                                      "content": "reply 19",
+                                                                                      "inReplyTo": {
+                                                                                        "id": "{{actor}}/notes/4003/18",
+                                                                                        "type": "Note",
+                                                                                        "content": "reply 18",
+                                                                                        "inReplyTo": {
+                                                                                          "id": "{{actor}}/notes/4003/17",
+                                                                                          "type": "Note",
+                                                                                          "content": "reply 17",
+                                                                                          "inReplyTo": {
+                                                                                            "id": "{{actor}}/notes/4003/16",
+                                                                                            "type": "Note",
+                                                                                            "content": "reply 16",
+                                                                                            "inReplyTo": {
+                                                                                              "id": "{{actor}}/notes/4003/15",
+                                                                                              "type": "Note",
+                                                                                              "content": "reply 15",
+                                                                                              "inReplyTo": {
+                                                                                                "id": "{{actor}}/notes/4003/14",
+                                                                                                "type": "Note",
+                                                                                                "content": "reply 14",
+                                                                                                "inReplyTo": {
+                                                                                                  "id": "{{actor}}/notes/4003/13",
+                                                                                                  "type": "Note",
+                                                                                                  "content": "reply 13",
+                                                                                                  "inReplyTo": {
+                                                                                                    "id": "{{actor}}/notes/4003/12",
+                                                                                                    "type": "Note",
+                                                                                                    "content": "reply 12",
+                                                                                                    "inReplyTo": {
+                                                                                                      "id": "{{actor}}/notes/4003/11",
+                                                                                                      "type": "Note",
+                                                                                                      "content": "reply 11",
+                                                                                                      "inReplyTo": {
+                                                                                                        "id": "{{actor}}/notes/4003/10",
+                                                                                                        "type": "Note",
+                                                                                                        "content": "reply 10",
+                                                                                                        "inReplyTo": {
+                                                                                                          "id": "{{actor}}/notes/4003/9",
+                                                                                                          "type": "Note",
+                                                                                                          "content": "reply 9",
+                                                                                                          "inReplyTo": {
+                                                                                                            "id": "{{actor}}/notes/4003/8",
+                                                                                                            "type": "Note",
+                                                                                                            "content": "reply 8",
+                                                                                                            "inReplyTo": {
+                                                                                                              "id": "{{actor}}/notes/4003/7",
+                                                                                                              "type": "Note",
+                                                                                                              "content": "reply 7",
+                                                                                                              "inReplyTo": {
+                                                                                                                "id": "{{actor}}/notes/4003/6",
+                                                                                                                "type": "Note",
+                                                                                                                "content": "reply 6",
+                                                                                                                "inReplyTo": {
+                                                                                                                  "id": "{{actor}}/notes/4003/5",
+                                                                                                                  "type": "Note",
+                                                                                                                  "content": "reply 5",
+                                                                                                                  "inReplyTo": {
+                                                                                                                    "id": "{{actor}}/notes/4003/4",
+                                                                                                                    "type": "Note",
+                                                                                                                    "content": "reply 4",
+                                                                                                                    "inReplyTo": {
+                                                                                                                      "id": "{{actor}}/notes/4003/3",
+                                                                                                                      "type": "Note",
+                                                                                                                      "content": "reply 3",
+                                                                                                                      "inReplyTo": {
+                                                                                                                        "id": "{{actor}}/notes/4003/2",
+                                                                                                                        "type": "Note",
+                                                                                                                        "content": "reply 2",
+                                                                                                                        "inReplyTo": {
+                                                                                                                          "id": "{{actor}}/notes/4003/1",
+                                                                                                                          "type": "Note",
+                                                                                                                          "content": "reply 1",
+                                                                                                                          "inReplyTo": {
+                                                                                                                            "id": "{{actor}}/notes/4003/0",
+                                                                                                                            "type": "Note",
+                                                                                                                            "content": "the root"
+                                                                                                                          },
+                                                                                                                          "bto": [
+                                                                                                                            "https://blind.example.org/users/frank"
+                                                                                                                          ]
+                                                                                                                        },
+                                                                                                                        "bto": [
+                                                                                                                          "https://blind.example.org/users/frank"
+                                                                                                                        ]
+                                                                                                                      },
+                                                                                                                      "bto": [
+                                                                                                                        "https://blind.example.org/users/frank"
+                                                                                                                      ]
+                                                                                                                    },
+                                                                                                                    "bto": [
+                                                                                                                      "https://blind.example.org/users/frank"
+                                                                                                                    ]
+                                                                                                                  },
+                                                                                                                  "bto": [
+                                                                                                                    "https://blind.example.org/users/frank"
+                                                                                                                  ]
+                                                                                                                },
+                                                                                                                "bto": [
+                                                                                                                  "https://blind.example.org/users/frank"
+                                                                                                                ]
+                                                                                                              },
+                                                                                                              "bto": [
+                                                                                                                "https://blind.example.org/users/frank"
+                                                                                                              ]
+                                                                                                            },
+                                                                                                            "bto": [
+                                                                                                              "https://blind.example.org/users/frank"
+                                                                                                            ]
+                                                                                                          },
+                                                                                                          "bto": [
+                                                                                                            "https://blind.example.org/users/frank"
+                                                                                                          ]
+                                                                                                        },
+                                                                                                        "bto": [
+                                                                                                          "https://blind.example.org/users/frank"
+                                                                                                        ]
+                                                                                                      },
+                                                                                                      "bto": [
+                                                                                                        "https://blind.example.org/users/frank"
+                                                                                                      ]
+                                                                                                    },
+                                                                                                    "bto": [
+                                                                                                      "https://blind.example.org/users/frank"
+                                                                                                    ]
+                                                                                                  },
+                                                                                                  "bto": [
+                                                                                                    "https://blind.example.org/users/frank"
+                                                                                                  ]
+                                                                                                },
+                                                                                                "bto": [
+                                                                                                  "https://blind.example.org/users/frank"
+                                                                                                ]
+                                                                                              },
+                                                                                              "bto": [
+                                                                                                "https://blind.example.org/users/frank"
+                                                                                              ]
+                                                                                            },
+                                                                                            "bto": [
+                                                                                              "https://blind.example.org/users/frank"
+                                                                                            ]
+                                                                                          },
+                                                                                          "bto": [
+                                                                                            "https://blind.example.org/users/frank"
+                                                                                          ]
+                                                                                        },
+                                                                                        "bto": [
+                                                                                          "https://blind.example.org/users/frank"
+                                                                                        ]
+                                                                                      },
+                                                                                      "bto": [
+                                                                                        "https://blind.example.org/users/frank"
+                                                                                      ]
+                                                                                    },
+                                                                                    "bto": [
+                                                                                      "https://blind.example.org/users/frank"
+                                                                                    ]
+                                                                                  },
+                                                                                  "bto": [
+                                                                                    "https://blind.example.org/users/frank"
+                                                                                  ]
+                                                                                },
+                                                                                "bto": [
+                                                                                  "https://blind.example.org/users/frank"
+                                                                                ]
+                                                                              },
+                                                                              "bto": [
+                                                                                "https://blind.example.org/users/frank"
+                                                                              ]
+                                                                            },
+                                                                            "bto": [
+                                                                              "https://blind.example.org/users/frank"
+                                                                            ]
+                                                                          },
+                                                                          "bto": [
+                                                                            "https://blind.example.org/users/frank"
+                                                                          ]
+                                                                        },
+                                                                        "bto": [
+                                                                          "https://blind.example.org/users/frank"
+                                                                        ]
+                                                                      },
+                                                                      "bto": [
+                                                                        "https://blind.example.org/users/frank"
+                                                                      ]
+                                                                    },
+                                                                    "bto": [
+                                                                      "https://blind.example.org/users/frank"
+                                                                    ]
+                                                                  },
+                                                                  "bto": [
+                                                                    "https://blind.example.org/users/frank"
+                                                                  ]
+                                                                },
+                                                                "bto": [
+                                                                  "https://blind.example.org/users/frank"
+                                                                ]
+                                                              },
+                                                              "bto": [
+                                                                "https://blind.example.org/users/frank"
+                                                              ]
+                                                            },
+                                                            "bto": [
+                                                              "https://blind.example.org/users/frank"
+                                                            ]
+                                                          },
+                                                          "bto": [
+                                                            "https://blind.example.org/users/frank"
+                                                          ]
+                                                        },
+                                                        "bto": [
+                                                          "https://blind.example.org/users/frank"
+                                                        ]
+                                                      },
+                                                      "bto": [
+                                                        "https://blind.example.org/users/frank"
+                                                      ]
+                                                    },
+                                                    "bto": [
+                                                      "https://blind.example.org/users/frank"
+                                                    ]
+                                                  },
+                                                  "bto": [
+                                                    "https://blind.example.org/users/frank"
+                                                  ]
+                                                },
+                                                "bto": [
+                                                  "https://blind.example.org/users/frank"
+                                                ]
+                                              },
+                                              "bto": [
+                                                "https://blind.example.org/users/frank"
+                                              ]
+                                            },
+                                            "bto": [
+                                              "https://blind.example.org/users/frank"
+                                            ]
+                                          },
+                                          "bto": [
+                                            "https://blind.example.org/users/frank"
+                                          ]
+                                        },
+                                        "bto": [
+                                          "https://blind.example.org/users/frank"
+                                        ]
+                                      },
+                                      "bto": [
+                                        "https://blind.example.org/users/frank"
+                                      ]
+                                    },
+                                    "bto": [
+                                      "https://blind.example.org/users/frank"
+                                    ]
+                                  },
+                                  "bto": [
+                                    "https://blind.example.org/users/frank"
+                                  ]
+                                },
+                                "bto": [
+                                  "https://blind.example.org/users/frank"
+                                ]
+                              },
+                              "bto": [
+                                "https://blind.example.org/users/frank"
+                              ]
+                            },
+                            "bto": [
+                              "https://blind.example.org/users/frank"
+                            ]
+                          },
+                          "bto": [
+                            "https://blind.example.org/users/frank"
+                          ]
+                        },
+                        "bto": [
+                          "https://blind.example.org/users/frank"
+                        ]
+                      },
+                      "bto": [
+                        "https://blind.example.org/users/frank"
+                      ]
+                    },
+                    "bto": [
+                      "https://blind.example.org/users/frank"
+                    ]
+                  },
+                  "bto": [
+                    "https://blind.example.org/users/frank"
+                  ]
+                },
+                "bto": [
+                  "https://blind.example.org/users/frank"
+                ]
+              },
+              "bto": [
+                "https://blind.example.org/users/frank"
+              ]
+            },
+            "bto": [
+              "https://blind.example.org/users/frank"
+            ]
+          },
+          "bto": [
+            "https://blind.example.org/users/frank"
+          ]
+        },
+        "bto": [
+          "https://blind.example.org/users/frank"
+        ]
+      },
+      "bto": [
+        "https://blind.example.org/users/frank"
+      ]
+    }
+  }
+}

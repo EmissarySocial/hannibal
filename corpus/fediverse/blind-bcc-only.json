@@ -1,0 +1,28 @@
+{
+  "source": "ActivityPub client-to-server: a note addressed by bcc alone",
+  "recipients": [
+    "https://blind.example.org/users/frank",
+    "https://blind.example.org/users/grace"
+  ],
+  "activity": {
+    "@context": "https://www.w3.org/ns/activitystreams",
+    "id": "{{actor}}/notes/2002/activity",
+    "type": "Create",
+    "actor": "{{actor}}",
+    "bcc": [
+      "https://blind.example.org/users/frank",
+      "https://blind.example.org/users/grace"
+    ],
+    "object": {
+      "id": "{{actor}}/notes/2002",
+      "type": "Note",
+      "attributedTo": "{{actor}}",
+      "content": "<p>For a few people only</p>",
+      "published": "2026-10-03T14:21:07Z",
+      "bcc": [
+        "https://blind.example.org/users/frank",
+        "https://blind.example.org/users/grace"
+      ]
+    }
+  }
+}

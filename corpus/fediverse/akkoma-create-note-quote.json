@@ -1,0 +1,54 @@
+{
+  "source": "Akkoma 3.x: a quote post",
+  "recipients": [
+    "{{followers}}",
+    "https://mastodon.example.org/users/bob"
+  ],
+  "activity": {
+    "@context": [
+      "https://www.w3.org/ns/activitystreams",
+      "https://author.example.org/schemas/litepub-0.1.jsonld",
+      {
+        "@language": "und"
+      }
+    ],
+    "id": "https://author.example.org/activities/8e7f6a5b-4c3d-2e1f-0a9b-8c7d6e5f4a3b",
+    "type": "Create",
+    "actor": "{{actor}}",
+    "to": [
+      "https://www.w3.org/ns/activitystreams#Public"
+    ],
+    "cc": [
+      "{{followers}}",
+      "https://mastodon.example.org/users/bob"
+    ],
+    "object": {
+      "id": "https://author.example.org/objects/3c4d5e6f-7a8b-9c0d-1e2f-3a4b5c6d7e8f",
+      "type": "Note",
+      "actor": "{{actor}}",
+      "attributedTo": "{{actor}}",
+      "to": [
+        "https://www.w3.org/ns/activitystreams#Public"
+      ],
+      "cc": [
+        "{{followers}}",
+        "https://mastodon.example.org/users/bob"
+      ],
+      "content": "worth reading<span class=\"quote-inline\"><br/><br/>RE: <a href=\"https://mastodon.example.org/@bob/113000000000000001\">https://mastodon.example.org/@bob/113000000000000001</a></span>",
+      "contentMap": {
+        "en": "worth reading"
+      },
+      "quoteUri": "https://mastodon.example.org/users/bob/statuses/113000000000000001",
+      "quoteUrl": "https://mastodon.example.org/users/bob/statuses/113000000000000001",
+      "_misskey_quote": "https://mastodon.example.org/users/bob/statuses/113000000000000001",
+      "tag": [
+        {
+          "type": "Link",
+          "mediaType": "application/ld+json; profile=\"https://www.w3.org/ns/activitystreams\"",
+          "href": "https://mastodon.example.org/users/bob/statuses/113000000000000001",
+          "name": "RE: https://mastodon.example.org/@bob/113000000000000001"
+        }
+      ]
+    }
+  }
+}

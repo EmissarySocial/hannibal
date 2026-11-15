@@ -1,0 +1,51 @@
+{
+  "source": "Pleroma 2.x: a public post",
+  "recipients": [
+    "{{followers}}"
+  ],
+  "activity": {
+    "@context": [
+      "https://www.w3.org/ns/activitystreams",
+      "https://author.example.org/schemas/litepub-0.1.jsonld",
+      {
+        "@language": "und"
+      }
+    ],
+    "id": "https://author.example.org/activities/3f2a1b0c-9d8e-7f6a-5b4c-3d2e1f0a9b8c",
+    "type": "Create",
+    "actor": "{{actor}}",
+    "published": "2026-10-03T14:21:07.123456Z",
+    "to": [
+      "https://www.w3.org/ns/activitystreams#Public"
+    ],
+    "cc": [
+      "{{followers}}"
+    ],
+    "context": "https://author.example.org/contexts/7a6b5c4d-3e2f-1a0b-9c8d-7e6f5a4b3c2d",
+    "directMessage": false,
+    "object": {
+      "id": "https://author.example.org/objects/1a2b3c4d-5e6f-7a8b-9c0d-1e2f3a4b5c6d",
+      "type": "Note",
+      "actor": "{{actor}}",
+      "attributedTo": "{{actor}}",
+      "to": [
+        "https://www.w3.org/ns/activitystreams#Public"
+      ],
+      "cc": [
+        "{{followers}}"
+      ],
+      "context": "https://author.example.org/contexts/7a6b5c4d-3e2f-1a0b-9c8d-7e6f5a4b3c2d",
+      "conversation": "https://author.example.org/contexts/7a6b5c4d-3e2f-1a0b-9c8d-7e6f5a4b3c2d",
+      "content": "Hello from Pleroma",
+      "source": {
+        "content": "Hello from Pleroma",
+        "mediaType": "text/plain"
+      },
+      "summary": "",
+      "sensitive": false,
+      "published": "2026-10-03T14:21:07.123456Z",
+      "attachment": [],
+      "tag": []
+    }
+  }
+}

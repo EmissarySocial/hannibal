@@ -1,0 +1,29 @@
+{
+  "source": "Synthetic: an activity whose actor is an embedded object",
+  "recipients": [
+    "https://mastodon.example.org/users/bob",
+    "{{followers}}"
+  ],
+  "activity": {
+    "@context": "https://www.w3.org/ns/activitystreams",
+    "id": "{{actor}}/notes/3008/activity",
+    "type": "Create",
+    "actor": {
+      "id": "{{actor}}",
+      "type": "Person",
+      "name": "The Author",
+      "inbox": "{{actor}}/inbox"
+    },
+    "to": [
+      "https://mastodon.example.org/users/bob"
+    ],
+    "cc": [
+      "{{followers}}"
+    ],
+    "object": {
+      "id": "{{actor}}/notes/3008",
+      "type": "Note",
+      "content": "embedded actor"
+    }
+  }
+}

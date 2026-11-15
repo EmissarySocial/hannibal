@@ -1,0 +1,44 @@
+{
+  "source": "BookWyrm: a book review with a fractional rating",
+  "recipients": [
+    "{{followers}}"
+  ],
+  "activity": {
+    "@context": "https://www.w3.org/ns/activitystreams",
+    "id": "https://author.example.org/user/author/review/5150/activity",
+    "type": "Create",
+    "actor": "{{actor}}",
+    "to": [
+      "https://www.w3.org/ns/activitystreams#Public"
+    ],
+    "cc": [
+      "{{followers}}"
+    ],
+    "object": {
+      "id": "https://author.example.org/user/author/review/5150",
+      "type": "Review",
+      "published": "2026-10-03T14:21:07.123456+00:00",
+      "attributedTo": "{{actor}}",
+      "content": "<p>Dense, but worth it.</p>",
+      "to": [
+        "https://www.w3.org/ns/activitystreams#Public"
+      ],
+      "cc": [
+        "{{followers}}"
+      ],
+      "replies": {
+        "id": "https://author.example.org/user/author/review/5150/replies",
+        "type": "OrderedCollection",
+        "totalItems": 0,
+        "first": "https://author.example.org/user/author/review/5150/replies?page=1",
+        "last": "https://author.example.org/user/author/review/5150/replies?page=1"
+      },
+      "tag": [],
+      "attachment": [],
+      "sensitive": false,
+      "inReplyToBook": "https://author.example.org/book/8812",
+      "name": "Review of \"The One-Straw Revolution\" (4.5 stars): Dense, but worth it",
+      "rating": 4.5
+    }
+  }
+}

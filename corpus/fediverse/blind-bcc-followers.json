@@ -1,0 +1,25 @@
+{
+  "source": "ActivityPub client-to-server: a note sent to followers without naming their collection",
+  "recipients": [
+    "{{followers}}"
+  ],
+  "activity": {
+    "@context": "https://www.w3.org/ns/activitystreams",
+    "id": "{{actor}}/notes/2003/activity",
+    "type": "Create",
+    "actor": "{{actor}}",
+    "bcc": [
+      "{{followers}}"
+    ],
+    "object": {
+      "id": "{{actor}}/notes/2003",
+      "type": "Note",
+      "attributedTo": "{{actor}}",
+      "content": "<p>For a few people only</p>",
+      "published": "2026-10-03T14:21:07Z",
+      "bcc": [
+        "{{followers}}"
+      ]
+    }
+  }
+}

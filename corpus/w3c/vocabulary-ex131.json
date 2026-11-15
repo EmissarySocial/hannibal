@@ -1,0 +1,11 @@
+
+{
+  "@context": "https://www.w3.org/ns/activitystreams",
+  "name": "A simple note",
+  "type": "Note",
+  "contentMap": {
+    "en": "A &lt;em&gt;simple&lt;/em&gt; note",
+    "es": "Una nota &lt;em&gt;sencilla&lt;/em&gt;",
+    "zh-Hans": "一段&lt;em&gt;简单的&lt;/em&gt;笔记"
+  }
+}

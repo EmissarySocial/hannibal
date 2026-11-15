@@ -1,0 +1,10 @@
+
+{
+  "@context": "https://www.w3.org/ns/activitystreams",
+  "type": "Object",
+  "nameMap": {
+    "en": "This is the title",
+    "fr": "C'est le titre",
+    "es": "Este es el título"
+  }
+}

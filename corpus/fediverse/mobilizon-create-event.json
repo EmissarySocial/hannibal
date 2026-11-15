@@ -1,0 +1,99 @@
+{
+  "source": "Mobilizon 4.x: a public event with a postal address",
+  "recipients": [
+    "{{followers}}"
+  ],
+  "activity": {
+    "@context": [
+      "https://www.w3.org/ns/activitystreams",
+      "https://litepub.social/context.jsonld",
+      {
+        "sc": "http://schema.org#",
+        "mz": "https://joinmobilizon.org/ns#",
+        "ical": "http://www.w3.org/2002/12/cal/ical#",
+        "PostalAddress": "sc:PostalAddress",
+        "address": {
+          "@id": "sc:address",
+          "@type": "sc:PostalAddress"
+        },
+        "maximumAttendeeCapacity": "sc:maximumAttendeeCapacity",
+        "joinMode": {
+          "@id": "mz:joinMode",
+          "@type": "mz:joinModeType"
+        },
+        "repliesModerationOption": {
+          "@id": "mz:repliesModerationOption",
+          "@type": "mz:repliesModerationOptionType"
+        }
+      }
+    ],
+    "id": "https://author.example.org/events/6d5c4b3a-2918-0706-f5e4-d3c2b1a09f8e/activity",
+    "type": "Create",
+    "actor": "{{actor}}",
+    "to": [
+      "https://www.w3.org/ns/activitystreams#Public"
+    ],
+    "cc": [
+      "{{followers}}"
+    ],
+    "object": {
+      "id": "https://author.example.org/events/6d5c4b3a-2918-0706-f5e4-d3c2b1a09f8e",
+      "type": "Event",
+      "uuid": "6d5c4b3a-2918-0706-f5e4-d3c2b1a09f8e",
+      "name": "Community seed swap",
+      "content": "<p>Bring envelopes and labels.</p>",
+      "attributedTo": "{{actor}}",
+      "actor": "{{actor}}",
+      "to": [
+        "https://www.w3.org/ns/activitystreams#Public"
+      ],
+      "cc": [
+        "{{followers}}"
+      ],
+      "startTime": "2026-10-17T10:00:00+02:00",
+      "endTime": "2026-10-17T13:00:00+02:00",
+      "published": "2026-10-03T14:21:07Z",
+      "updated": "2026-10-03T14:21:07Z",
+      "category": "COMMUNITY",
+      "joinMode": "free",
+      "maximumAttendeeCapacity": 40,
+      "remainingAttendeeCapacity": 40,
+      "participantCount": 0,
+      "anonymousParticipationEnabled": false,
+      "repliesModerationOption": "allow_all",
+      "commentsEnabled": true,
+      "draft": false,
+      "ical:status": "CONFIRMED",
+      "location": {
+        "id": "https://author.example.org/address/3a2b1c0d",
+        "type": "Place",
+        "name": "Allotment hall",
+        "latitude": 52.520008,
+        "longitude": 13.404954,
+        "address": {
+          "type": "PostalAddress",
+          "streetAddress": "Gartenweg 4",
+          "postalCode": "10115",
+          "addressLocality": "Berlin",
+          "addressCountry": "Germany"
+        }
+      },
+      "attachment": [
+        {
+          "type": "Link",
+          "href": "https://author.example.org/files/map.pdf",
+          "mediaType": "application/pdf",
+          "name": "Site map"
+        }
+      ],
+      "tag": [
+        {
+          "type": "Hashtag",
+          "href": "https://author.example.org/tags/seeds",
+          "name": "#seeds"
+        }
+      ],
+      "url": "https://author.example.org/events/6d5c4b3a-2918-0706-f5e4-d3c2b1a09f8e"
+    }
+  }
+}

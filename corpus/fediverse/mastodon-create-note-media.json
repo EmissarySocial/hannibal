@@ -1,0 +1,105 @@
+{
+  "source": "Mastodon 4.x: a post with a content warning and two attachments",
+  "recipients": [
+    "{{followers}}"
+  ],
+  "activity": {
+    "@context": [
+      "https://www.w3.org/ns/activitystreams",
+      {
+        "ostatus": "http://ostatus.org#",
+        "atomUri": "ostatus:atomUri",
+        "inReplyToAtomUri": "ostatus:inReplyToAtomUri",
+        "conversation": "ostatus:conversation",
+        "sensitive": "as:sensitive",
+        "toot": "http://joinmastodon.org/ns#",
+        "votersCount": "toot:votersCount",
+        "blurhash": "toot:blurhash",
+        "focalPoint": {
+          "@container": "@list",
+          "@id": "toot:focalPoint"
+        },
+        "Hashtag": "as:Hashtag",
+        "Emoji": "toot:Emoji"
+      }
+    ],
+    "id": "{{actor}}/statuses/1006/activity",
+    "type": "Create",
+    "actor": "{{actor}}",
+    "published": "2026-10-03T14:21:07Z",
+    "to": [
+      "https://www.w3.org/ns/activitystreams#Public"
+    ],
+    "cc": [
+      "{{followers}}"
+    ],
+    "object": {
+      "id": "{{actor}}/statuses/1006",
+      "type": "Note",
+      "summary": "Garden photos",
+      "inReplyTo": null,
+      "published": "2026-10-03T14:21:07Z",
+      "url": "https://author.example.org/@author/1006",
+      "attributedTo": "{{actor}}",
+      "to": [
+        "https://www.w3.org/ns/activitystreams#Public"
+      ],
+      "cc": [
+        "{{followers}}"
+      ],
+      "sensitive": true,
+      "atomUri": "{{actor}}/statuses/1006",
+      "inReplyToAtomUri": null,
+      "conversation": "tag:author.example.org,2026-10-03:objectId=1006:objectType=Conversation",
+      "content": "<p>Hello, world</p>",
+      "contentMap": {
+        "en": "<p>Hello, world</p>"
+      },
+      "attachment": [
+        {
+          "type": "Document",
+          "mediaType": "image/jpeg",
+          "url": "https://author.example.org/system/media_attachments/files/1/original/a.jpg",
+          "name": "A raised bed with tomato seedlings",
+          "blurhash": "UBL_:rOpGG-oBUNG,qRj2so|=eE1w^n4S5NH",
+          "focalPoint": [
+            0.0,
+            -0.42
+          ],
+          "width": 1920,
+          "height": 1080
+        },
+        {
+          "type": "Document",
+          "mediaType": "video/mp4",
+          "url": "https://author.example.org/system/media_attachments/files/2/original/b.mp4",
+          "name": null,
+          "blurhash": "U58;V?of00WB~qof9Fay4nj[%Mof",
+          "width": 1280,
+          "height": 720
+        }
+      ],
+      "tag": [],
+      "replies": {
+        "id": "{{actor}}/statuses/1006/replies",
+        "type": "Collection",
+        "first": {
+          "type": "CollectionPage",
+          "next": "{{actor}}/statuses/1006/replies?only_other_accounts=true&page=true",
+          "partOf": "{{actor}}/statuses/1006/replies",
+          "items": []
+        }
+      },
+      "likes": {
+        "id": "{{actor}}/statuses/1006/likes",
+        "type": "Collection",
+        "totalItems": 0
+      },
+      "shares": {
+        "id": "{{actor}}/statuses/1006/shares",
+        "type": "Collection",
+        "totalItems": 0
+      }
+    }
+  }
+}

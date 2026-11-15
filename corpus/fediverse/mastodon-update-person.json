@@ -1,0 +1,75 @@
+{
+  "source": "Mastodon 4.x: a profile update, which embeds the whole actor",
+  "recipients": [],
+  "activity": {
+    "@context": [
+      "https://www.w3.org/ns/activitystreams",
+      "https://w3id.org/security/v1",
+      {
+        "toot": "http://joinmastodon.org/ns#",
+        "discoverable": "toot:discoverable",
+        "schema": "http://schema.org#",
+        "PropertyValue": "schema:PropertyValue",
+        "value": "schema:value"
+      }
+    ],
+    "id": "{{actor}}#updates/1791043200",
+    "type": "Update",
+    "actor": "{{actor}}",
+    "to": [
+      "https://www.w3.org/ns/activitystreams#Public"
+    ],
+    "object": {
+      "id": "{{actor}}",
+      "type": "Person",
+      "following": "{{actor}}/following",
+      "followers": "{{followers}}",
+      "inbox": "{{actor}}/inbox",
+      "outbox": "{{actor}}/outbox",
+      "featured": "{{actor}}/collections/featured",
+      "featuredTags": "{{actor}}/collections/tags",
+      "preferredUsername": "author",
+      "name": "The Author 🌱",
+      "summary": "<p>Gardening, mostly.</p>",
+      "url": "https://author.example.org/@author",
+      "manuallyApprovesFollowers": false,
+      "discoverable": true,
+      "indexable": true,
+      "published": "2022-11-05T00:00:00Z",
+      "memorial": false,
+      "devices": "{{actor}}/collections/devices",
+      "alsoKnownAs": [],
+      "publicKey": {
+        "id": "{{actor}}#main-key",
+        "owner": "{{actor}}",
+        "publicKeyPem": "-----BEGIN PUBLIC KEY-----\nMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAtest\n-----END PUBLIC KEY-----\n"
+      },
+      "tag": [],
+      "attachment": [
+        {
+          "type": "PropertyValue",
+          "name": "Website",
+          "value": "<a href=\"https://author.example.org\" target=\"_blank\" rel=\"nofollow noopener me\">author.example.org</a>"
+        },
+        {
+          "type": "PropertyValue",
+          "name": "Pronouns",
+          "value": "they/them"
+        }
+      ],
+      "endpoints": {
+        "sharedInbox": "https://author.example.org/inbox"
+      },
+      "icon": {
+        "type": "Image",
+        "mediaType": "image/png",
+        "url": "https://author.example.org/system/accounts/avatars/1/original/a.png"
+      },
+      "image": {
+        "type": "Image",
+        "mediaType": "image/jpeg",
+        "url": "https://author.example.org/system/accounts/headers/1/original/h.jpg"
+      }
+    }
+  }
+}

@@ -1,0 +1,83 @@
+{
+  "source": "Pixelfed: a photo post with a location and reply controls",
+  "recipients": [
+    "{{followers}}"
+  ],
+  "activity": {
+    "@context": [
+      "https://www.w3.org/ns/activitystreams",
+      {
+        "sc": "http://schema.org#",
+        "Hashtag": "as:Hashtag",
+        "sensitive": "as:sensitive",
+        "commentsEnabled": "sc:Boolean",
+        "capabilities": {
+          "announce": {
+            "@type": "@id"
+          },
+          "like": {
+            "@type": "@id"
+          },
+          "reply": {
+            "@type": "@id"
+          }
+        },
+        "toot": "http://joinmastodon.org/ns#",
+        "Emoji": "toot:Emoji",
+        "blurhash": "toot:blurhash"
+      }
+    ],
+    "id": "https://author.example.org/p/author/700000000000000001/activity",
+    "type": "Create",
+    "actor": "{{actor}}",
+    "published": "2026-10-03T14:21:07+00:00",
+    "to": [
+      "https://www.w3.org/ns/activitystreams#Public"
+    ],
+    "cc": [
+      "{{followers}}"
+    ],
+    "object": {
+      "id": "https://author.example.org/p/author/700000000000000001",
+      "type": "Note",
+      "summary": null,
+      "content": "Morning light",
+      "inReplyTo": null,
+      "published": "2026-10-03T14:21:07+00:00",
+      "url": "https://author.example.org/p/author/700000000000000001",
+      "attributedTo": "{{actor}}",
+      "to": [
+        "https://www.w3.org/ns/activitystreams#Public"
+      ],
+      "cc": [
+        "{{followers}}"
+      ],
+      "sensitive": false,
+      "attachment": [
+        {
+          "type": "Image",
+          "mediaType": "image/jpeg",
+          "url": "https://author.example.org/storage/m/a.jpg",
+          "name": null,
+          "blurhash": "UBL_:rOpGG-oBUNG,qRj2so|=eE1w^n4S5NH",
+          "width": 1080,
+          "height": 1350
+        }
+      ],
+      "tag": [],
+      "commentsEnabled": true,
+      "capabilities": {
+        "announce": "https://www.w3.org/ns/activitystreams#Public",
+        "like": "https://www.w3.org/ns/activitystreams#Public",
+        "reply": "https://www.w3.org/ns/activitystreams#Public"
+      },
+      "location": {
+        "type": "Place",
+        "name": "Lisbon",
+        "longitude": "-9.139337",
+        "latitude": "38.722252",
+        "country": "Portugal"
+      }
+    }
+  }
+}

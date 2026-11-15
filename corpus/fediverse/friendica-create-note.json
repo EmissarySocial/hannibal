@@ -1,0 +1,74 @@
+{
+  "source": "Friendica: a post that mentions another actor",
+  "recipients": [
+    "https://mastodon.example.org/users/bob",
+    "{{followers}}"
+  ],
+  "activity": {
+    "@context": [
+      "https://www.w3.org/ns/activitystreams",
+      "https://w3id.org/security/v1",
+      {
+        "vcard": "http://www.w3.org/2006/vcard/ns#",
+        "dfrn": "http://purl.org/macgirvin/dfrn/1.0/",
+        "diaspora": "https://diasporafoundation.org/ns/",
+        "litepub": "http://litepub.social/ns#",
+        "manuallyApprovesFollowers": "as:manuallyApprovesFollowers",
+        "sensitive": "as:sensitive",
+        "Hashtag": "as:Hashtag",
+        "directMessage": "litepub:directMessage"
+      }
+    ],
+    "id": "https://author.example.org/objects/11112222-3333-4444-5555-666677778888/Create",
+    "type": "Create",
+    "actor": "{{actor}}",
+    "published": "2026-10-03T14:21:07Z",
+    "instrument": {
+      "type": "Service",
+      "name": "Friendica 'Yellow Archangel' 2024.12-1560",
+      "url": "https://author.example.org"
+    },
+    "to": [
+      "https://www.w3.org/ns/activitystreams#Public",
+      "https://mastodon.example.org/users/bob"
+    ],
+    "cc": [
+      "{{followers}}"
+    ],
+    "object": {
+      "id": "https://author.example.org/objects/11112222-3333-4444-5555-666677778888",
+      "type": "Note",
+      "diaspora:guid": "11112222-3333-4444-5555-666677778888",
+      "summary": null,
+      "inReplyTo": null,
+      "published": "2026-10-03T14:21:07Z",
+      "url": "https://author.example.org/display/11112222-3333-4444-5555-666677778888",
+      "attributedTo": "{{actor}}",
+      "sensitive": false,
+      "context": "https://author.example.org/objects/11112222-3333-4444-5555-666677778888#context",
+      "content": "@<span class=\"vcard\"><a href=\"https://mastodon.example.org/@bob\" class=\"url u-url mention\">bob</a></span> have you tried mulching?",
+      "contentMap": {
+        "en": "@bob have you tried mulching?"
+      },
+      "source": {
+        "content": "@[url=https://mastodon.example.org/@bob]bob[/url] have you tried mulching?",
+        "mediaType": "text/bbcode"
+      },
+      "attachment": [],
+      "tag": [
+        {
+          "type": "Mention",
+          "href": "https://mastodon.example.org/users/bob",
+          "name": "@bob@mastodon.example.org"
+        }
+      ],
+      "to": [
+        "https://www.w3.org/ns/activitystreams#Public",
+        "https://mastodon.example.org/users/bob"
+      ],
+      "cc": [
+        "{{followers}}"
+      ]
+    }
+  }
+}

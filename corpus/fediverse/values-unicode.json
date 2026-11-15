@@ -1,0 +1,40 @@
+{
+  "source": "Synthetic: text in many scripts, with markup, control characters and escapes",
+  "recipients": [
+    "https://mastodon.example.org/users/bob"
+  ],
+  "activity": {
+    "@context": [
+      "https://www.w3.org/ns/activitystreams",
+      {
+        "@language": "en"
+      }
+    ],
+    "id": "{{actor}}/notes/4001/activity",
+    "type": "Create",
+    "actor": "{{actor}}",
+    "to": [
+      "https://mastodon.example.org/users/bob"
+    ],
+    "object": {
+      "id": "{{actor}}/notes/4001",
+      "type": "Note",
+      "name": "naïve café — “quotes” & <tags>",
+      "content": "<p>👩‍👩‍👧 שלום العربية 日本語 한국어 Ελληνικά</p><script>alert(\"x\")</script>",
+      "contentMap": {
+        "en": "hello",
+        "he": "שלום",
+        "ar": "مرحبا",
+        "ja": "こんにちは",
+        "zh-Hans": "你好",
+        "und": "  "
+      },
+      "nameMap": {
+        "en": "back\\slash \"quote\" \t tab \n newline \r return",
+        "x-control": "nul:\u0000 bell:\u0007 del:"
+      },
+      "summary": "á vs á, and a lone surrogate-free astral: 𝄞",
+      "url": "https://author.example.org/notes/4001?q=a%20b&x=é#frag"
+    }
+  }
+}

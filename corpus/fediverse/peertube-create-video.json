@@ -1,0 +1,185 @@
+{
+  "source": "PeerTube 6.x: a published video",
+  "recipients": [
+    "{{followers}}"
+  ],
+  "activity": {
+    "@context": [
+      "https://www.w3.org/ns/activitystreams",
+      "https://w3id.org/security/v1",
+      {
+        "RsaSignature2017": "https://w3id.org/security#RsaSignature2017"
+      },
+      {
+        "pt": "https://joinpeertube.org/ns#",
+        "sc": "http://schema.org/",
+        "Hashtag": "as:Hashtag",
+        "uuid": "sc:identifier",
+        "category": "sc:category",
+        "licence": "sc:license",
+        "subtitleLanguage": "sc:subtitleLanguage",
+        "sensitive": "as:sensitive",
+        "language": "sc:inLanguage",
+        "views": "sc:Number",
+        "state": "sc:Number",
+        "size": "sc:Number",
+        "fps": "sc:Number",
+        "commentsEnabled": "sc:Boolean",
+        "downloadEnabled": "sc:Boolean",
+        "waitTranscoding": "sc:Boolean",
+        "support": "sc:Text",
+        "Infohash": "pt:Infohash",
+        "isLiveBroadcast": "sc:Boolean",
+        "likes": {
+          "@id": "as:likes",
+          "@type": "@id"
+        },
+        "dislikes": {
+          "@id": "as:dislikes",
+          "@type": "@id"
+        },
+        "shares": {
+          "@id": "as:shares",
+          "@type": "@id"
+        },
+        "comments": {
+          "@id": "as:comments",
+          "@type": "@id"
+        }
+      }
+    ],
+    "id": "https://author.example.org/videos/watch/2c3d4e5f-6a7b-8c9d-0e1f-2a3b4c5d6e7f/activity",
+    "type": "Create",
+    "actor": "{{actor}}",
+    "to": [
+      "https://www.w3.org/ns/activitystreams#Public"
+    ],
+    "cc": [
+      "{{followers}}"
+    ],
+    "object": {
+      "id": "https://author.example.org/videos/watch/2c3d4e5f-6a7b-8c9d-0e1f-2a3b4c5d6e7f",
+      "type": "Video",
+      "name": "Pruning tomatoes, start to finish",
+      "duration": "PT754S",
+      "uuid": "2c3d4e5f-6a7b-8c9d-0e1f-2a3b4c5d6e7f",
+      "category": {
+        "identifier": "15",
+        "name": "Science & Technology"
+      },
+      "licence": {
+        "identifier": "1",
+        "name": "Attribution"
+      },
+      "language": {
+        "identifier": "en",
+        "name": "English"
+      },
+      "subtitleLanguage": [
+        {
+          "identifier": "fr",
+          "name": "French",
+          "url": "https://author.example.org/videos/watch/2c3d4e5f-6a7b-8c9d-0e1f-2a3b4c5d6e7f/captions/fr.vtt"
+        }
+      ],
+      "tag": [
+        {
+          "type": "Hashtag",
+          "name": "gardening"
+        },
+        {
+          "type": "Hashtag",
+          "name": "tomatoes"
+        }
+      ],
+      "views": 0,
+      "sensitive": false,
+      "waitTranscoding": true,
+      "state": 1,
+      "commentsEnabled": true,
+      "downloadEnabled": true,
+      "isLiveBroadcast": false,
+      "published": "2026-10-03T14:21:07.000Z",
+      "originallyPublishedAt": null,
+      "updated": "2026-10-03T14:25:00.000Z",
+      "mediaType": "text/markdown",
+      "content": "A full walk-through.\n\n**Tools:** shears, twine.",
+      "support": null,
+      "icon": [
+        {
+          "type": "Image",
+          "url": "https://author.example.org/lazy-static/thumbnails/t.jpg",
+          "mediaType": "image/jpeg",
+          "width": 280,
+          "height": 157
+        },
+        {
+          "type": "Image",
+          "url": "https://author.example.org/lazy-static/previews/p.jpg",
+          "mediaType": "image/jpeg",
+          "width": 850,
+          "height": 480
+        }
+      ],
+      "url": [
+        {
+          "type": "Link",
+          "mediaType": "text/html",
+          "href": "https://author.example.org/videos/watch/2c3d4e5f-6a7b-8c9d-0e1f-2a3b4c5d6e7f"
+        },
+        {
+          "type": "Link",
+          "mediaType": "application/x-mpegURL",
+          "href": "https://author.example.org/static/streaming-playlists/hls/master.m3u8",
+          "tag": [
+            {
+              "type": "Infohash",
+              "name": "0123456789abcdef0123456789abcdef01234567"
+            },
+            {
+              "type": "Link",
+              "name": "sha256",
+              "mediaType": "application/json",
+              "href": "https://author.example.org/static/streaming-playlists/hls/segments-sha256.json"
+            },
+            {
+              "type": "Link",
+              "mediaType": "video/mp4",
+              "href": "https://author.example.org/static/streaming-playlists/hls/1080-fragmented.mp4",
+              "height": 1080,
+              "width": 1920,
+              "size": 1073741824,
+              "fps": 30
+            },
+            {
+              "type": "Link",
+              "mediaType": "application/x-bittorrent",
+              "href": "https://author.example.org/lazy-static/torrents/1080-hls.torrent",
+              "height": 1080
+            }
+          ]
+        }
+      ],
+      "likes": "https://author.example.org/videos/watch/2c3d4e5f-6a7b-8c9d-0e1f-2a3b4c5d6e7f/likes",
+      "dislikes": "https://author.example.org/videos/watch/2c3d4e5f-6a7b-8c9d-0e1f-2a3b4c5d6e7f/dislikes",
+      "shares": "https://author.example.org/videos/watch/2c3d4e5f-6a7b-8c9d-0e1f-2a3b4c5d6e7f/announces",
+      "comments": "https://author.example.org/videos/watch/2c3d4e5f-6a7b-8c9d-0e1f-2a3b4c5d6e7f/comments",
+      "attributedTo": [
+        {
+          "type": "Person",
+          "id": "{{actor}}"
+        },
+        {
+          "type": "Group",
+          "id": "https://author.example.org/video-channels/garden_channel"
+        }
+      ],
+      "to": [
+        "https://www.w3.org/ns/activitystreams#Public"
+      ],
+      "cc": [
+        "{{followers}}"
+      ]
+    }
+  }
+}

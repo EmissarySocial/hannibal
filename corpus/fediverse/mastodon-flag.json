@@ -1,0 +1,16 @@
+{
+  "source": "Mastodon 4.x: a report that names an account and two posts",
+  "recipients": [],
+  "activity": {
+    "@context": "https://www.w3.org/ns/activitystreams",
+    "id": "https://author.example.org/9d8c7b6a-5f4e-3d2c-1b0a-9f8e7d6c5b4a",
+    "type": "Flag",
+    "actor": "{{actor}}",
+    "content": "Spam, repeatedly",
+    "object": [
+      "https://mastodon.example.org/users/bob",
+      "https://mastodon.example.org/users/bob/statuses/113000000000000003",
+      "https://mastodon.example.org/users/bob/statuses/113000000000000004"
+    ]
+  }
+}

@@ -1,0 +1,11 @@
+{
+  "source": "Mastodon 4.x: unpinning a post",
+  "recipients": [],
+  "activity": {
+    "@context": "https://www.w3.org/ns/activitystreams",
+    "type": "Remove",
+    "actor": "{{actor}}",
+    "object": "{{actor}}/statuses/1001",
+    "target": "{{actor}}/collections/featured"
+  }
+}

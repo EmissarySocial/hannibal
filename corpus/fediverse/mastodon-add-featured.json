@@ -1,0 +1,11 @@
+{
+  "source": "Mastodon 4.x: pinning a post",
+  "recipients": [],
+  "activity": {
+    "@context": "https://www.w3.org/ns/activitystreams",
+    "type": "Add",
+    "actor": "{{actor}}",
+    "object": "{{actor}}/statuses/1001",
+    "target": "{{actor}}/collections/featured"
+  }
+}

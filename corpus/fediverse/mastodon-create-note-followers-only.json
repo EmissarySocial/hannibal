@@ -1,0 +1,78 @@
+{
+  "source": "Mastodon 4.x: a followers-only post, with an empty cc",
+  "recipients": [
+    "{{followers}}"
+  ],
+  "activity": {
+    "@context": [
+      "https://www.w3.org/ns/activitystreams",
+      {
+        "ostatus": "http://ostatus.org#",
+        "atomUri": "ostatus:atomUri",
+        "inReplyToAtomUri": "ostatus:inReplyToAtomUri",
+        "conversation": "ostatus:conversation",
+        "sensitive": "as:sensitive",
+        "toot": "http://joinmastodon.org/ns#",
+        "votersCount": "toot:votersCount",
+        "blurhash": "toot:blurhash",
+        "focalPoint": {
+          "@container": "@list",
+          "@id": "toot:focalPoint"
+        },
+        "Hashtag": "as:Hashtag",
+        "Emoji": "toot:Emoji"
+      }
+    ],
+    "id": "{{actor}}/statuses/1003/activity",
+    "type": "Create",
+    "actor": "{{actor}}",
+    "published": "2026-10-03T14:21:07Z",
+    "to": [
+      "{{followers}}"
+    ],
+    "cc": [],
+    "object": {
+      "id": "{{actor}}/statuses/1003",
+      "type": "Note",
+      "summary": null,
+      "inReplyTo": null,
+      "published": "2026-10-03T14:21:07Z",
+      "url": "https://author.example.org/@author/1003",
+      "attributedTo": "{{actor}}",
+      "to": [
+        "{{followers}}"
+      ],
+      "cc": [],
+      "sensitive": false,
+      "atomUri": "{{actor}}/statuses/1003",
+      "inReplyToAtomUri": null,
+      "conversation": "tag:author.example.org,2026-10-03:objectId=1003:objectType=Conversation",
+      "content": "<p>Hello, world</p>",
+      "contentMap": {
+        "en": "<p>Hello, world</p>"
+      },
+      "attachment": [],
+      "tag": [],
+      "replies": {
+        "id": "{{actor}}/statuses/1003/replies",
+        "type": "Collection",
+        "first": {
+          "type": "CollectionPage",
+          "next": "{{actor}}/statuses/1003/replies?only_other_accounts=true&page=true",
+          "partOf": "{{actor}}/statuses/1003/replies",
+          "items": []
+        }
+      },
+      "likes": {
+        "id": "{{actor}}/statuses/1003/likes",
+        "type": "Collection",
+        "totalItems": 0
+      },
+      "shares": {
+        "id": "{{actor}}/statuses/1003/shares",
+        "type": "Collection",
+        "totalItems": 0
+      }
+    }
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "source": "Lemmy 0.19: an upvote, which carries no addressing",
+  "recipients": [],
+  "activity": {
+    "@context": [
+      "https://join-lemmy.org/context.json",
+      "https://www.w3.org/ns/activitystreams"
+    ],
+    "id": "https://author.example.org/activities/like/2b1c0d9e-8f7a-6b5c-4d3e-2f1a0b9c8d7e",
+    "type": "Like",
+    "actor": "{{actor}}",
+    "object": "https://lemmy.example.org/post/77",
+    "audience": "https://lemmy.example.org/c/gardening"
+  }
+}

@@ -1,0 +1,43 @@
+{
+  "source": "Synthetic: properties written as full IRIs, compact IRIs and JSON-LD keywords",
+  "recipients": [
+    "https://mastodon.example.org/users/bob"
+  ],
+  "activity": {
+    "@context": [
+      "https://www.w3.org/ns/activitystreams",
+      {
+        "ex": "https://vocab.example.org/ns#",
+        "@vocab": "https://vocab.example.org/default#"
+      }
+    ],
+    "@id": "{{actor}}/notes/4005/activity-alias",
+    "id": "{{actor}}/notes/4005/activity",
+    "@type": "Create",
+    "type": "Create",
+    "actor": "{{actor}}",
+    "to": [
+      "https://mastodon.example.org/users/bob"
+    ],
+    "https://vocab.example.org/ns#rating": 5,
+    "ex:mood": "content",
+    "$ref": "not a database operator",
+    "dotted.key": {
+      "inner.key": "value",
+      "$inner": [
+        1,
+        2,
+        3
+      ]
+    },
+    "object": {
+      "id": "{{actor}}/notes/4005",
+      "@type": "Note",
+      "type": "Note",
+      "content": {
+        "@value": "typed value",
+        "@language": "en"
+      }
+    }
+  }
+}

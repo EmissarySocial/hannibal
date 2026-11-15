@@ -1,0 +1,19 @@
+
+{
+  "@context": "https://www.w3.org/ns/activitystreams",
+  "summary": "Page 1 of Sally's notes",
+  "type": "CollectionPage",
+  "id": "http://example.org/foo?page=1",
+  "partOf": "http://example.org/foo",
+  "items": [
+    {
+      "type": "Note",
+      "name": "A Simple Note"
+    },
+    {
+      "type": "Note",
+      "name": "Another Simple Note"
+    }
+  ]
+}
+  

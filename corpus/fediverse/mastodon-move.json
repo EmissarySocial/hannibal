@@ -1,0 +1,12 @@
+{
+  "source": "Mastodon 4.x: an account migration",
+  "recipients": [],
+  "activity": {
+    "@context": "https://www.w3.org/ns/activitystreams",
+    "id": "{{actor}}#moves/3",
+    "type": "Move",
+    "actor": "{{actor}}",
+    "object": "{{actor}}",
+    "target": "https://newhome.example.org/users/author"
+  }
+}

@@ -1,0 +1,79 @@
+{
+  "source": "GoToSocial 0.17+: a post with an interaction policy",
+  "recipients": [
+    "{{followers}}",
+    "https://mastodon.example.org/users/bob"
+  ],
+  "activity": {
+    "@context": [
+      "https://www.w3.org/ns/activitystreams",
+      "https://gotosocial.org/ns"
+    ],
+    "id": "https://author.example.org/users/author/statuses/01JABCDEFGHJKMNPQRSTVWXYZ0/activity",
+    "type": "Create",
+    "actor": "{{actor}}",
+    "published": "2026-10-03T14:21:07Z",
+    "to": "https://www.w3.org/ns/activitystreams#Public",
+    "cc": [
+      "{{followers}}",
+      "https://mastodon.example.org/users/bob"
+    ],
+    "object": {
+      "id": "https://author.example.org/users/author/statuses/01JABCDEFGHJKMNPQRSTVWXYZ0",
+      "type": "Note",
+      "attributedTo": "{{actor}}",
+      "to": "https://www.w3.org/ns/activitystreams#Public",
+      "cc": [
+        "{{followers}}",
+        "https://mastodon.example.org/users/bob"
+      ],
+      "content": "<p>Replies are held for approval.</p>",
+      "contentMap": {
+        "en": "<p>Replies are held for approval.</p>"
+      },
+      "interactionPolicy": {
+        "canLike": {
+          "automaticApproval": [
+            "https://www.w3.org/ns/activitystreams#Public"
+          ],
+          "manualApproval": []
+        },
+        "canReply": {
+          "automaticApproval": [
+            "{{actor}}",
+            "{{followers}}",
+            "https://mastodon.example.org/users/bob"
+          ],
+          "manualApproval": [
+            "https://www.w3.org/ns/activitystreams#Public"
+          ]
+        },
+        "canAnnounce": {
+          "automaticApproval": [
+            "{{actor}}"
+          ],
+          "manualApproval": [
+            "https://www.w3.org/ns/activitystreams#Public"
+          ]
+        }
+      },
+      "published": "2026-10-03T14:21:07Z",
+      "replies": {
+        "id": "https://author.example.org/users/author/statuses/01JABCDEFGHJKMNPQRSTVWXYZ0/replies",
+        "type": "Collection",
+        "first": {
+          "id": "https://author.example.org/users/author/statuses/01JABCDEFGHJKMNPQRSTVWXYZ0/replies?page=true",
+          "type": "CollectionPage",
+          "partOf": "https://author.example.org/users/author/statuses/01JABCDEFGHJKMNPQRSTVWXYZ0/replies"
+        }
+      },
+      "sensitive": false,
+      "tag": {
+        "type": "Mention",
+        "href": "https://mastodon.example.org/users/bob",
+        "name": "@bob@mastodon.example.org"
+      },
+      "url": "https://author.example.org/@author/statuses/01JABCDEFGHJKMNPQRSTVWXYZ0"
+    }
+  }
+}

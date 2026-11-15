@@ -1,0 +1,11 @@
+{
+  "source": "Mastodon 4.x: a Follow, which carries no addressing",
+  "recipients": [],
+  "activity": {
+    "@context": "https://www.w3.org/ns/activitystreams",
+    "id": "https://author.example.org/0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0",
+    "type": "Follow",
+    "actor": "{{actor}}",
+    "object": "https://mastodon.example.org/users/bob"
+  }
+}

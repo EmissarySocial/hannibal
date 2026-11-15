@@ -1,0 +1,34 @@
+{
+  "source": "Pleroma 2.x: a chat message",
+  "recipients": [
+    "https://mastodon.example.org/users/bob"
+  ],
+  "activity": {
+    "@context": [
+      "https://www.w3.org/ns/activitystreams",
+      "https://author.example.org/schemas/litepub-0.1.jsonld",
+      {
+        "@language": "und"
+      }
+    ],
+    "id": "https://author.example.org/activities/7d6e5f4a-3b2c-1d0e-9f8a-7b6c5d4e3f2a",
+    "type": "Create",
+    "actor": "{{actor}}",
+    "to": [
+      "https://mastodon.example.org/users/bob"
+    ],
+    "published": "2026-10-03T14:32:00.000000Z",
+    "object": {
+      "id": "https://author.example.org/objects/2b3c4d5e-6f7a-8b9c-0d1e-2f3a4b5c6d7e",
+      "type": "ChatMessage",
+      "actor": "{{actor}}",
+      "attributedTo": "{{actor}}",
+      "to": [
+        "https://mastodon.example.org/users/bob"
+      ],
+      "content": "are you there?",
+      "emoji": {},
+      "published": "2026-10-03T14:32:00.000000Z"
+    }
+  }
+}

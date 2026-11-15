@@ -1,0 +1,42 @@
+{
+  "source": "ActivityPub client-to-server: a note with to, bto and bcc, copied onto its object as the specification describes",
+  "recipients": [
+    "https://mastodon.example.org/users/bob",
+    "https://blind.example.org/users/frank",
+    "https://blind.example.org/users/grace",
+    "https://blind.example.org/users/heidi"
+  ],
+  "activity": {
+    "@context": "https://www.w3.org/ns/activitystreams",
+    "id": "{{actor}}/notes/2001/activity",
+    "type": "Create",
+    "actor": "{{actor}}",
+    "to": [
+      "https://mastodon.example.org/users/bob"
+    ],
+    "bto": [
+      "https://blind.example.org/users/frank"
+    ],
+    "bcc": [
+      "https://blind.example.org/users/grace",
+      "https://blind.example.org/users/heidi"
+    ],
+    "object": {
+      "id": "{{actor}}/notes/2001",
+      "type": "Note",
+      "attributedTo": "{{actor}}",
+      "content": "<p>For a few people only</p>",
+      "published": "2026-10-03T14:21:07Z",
+      "to": [
+        "https://mastodon.example.org/users/bob"
+      ],
+      "bto": [
+        "https://blind.example.org/users/frank"
+      ],
+      "bcc": [
+        "https://blind.example.org/users/grace",
+        "https://blind.example.org/users/heidi"
+      ]
+    }
+  }
+}

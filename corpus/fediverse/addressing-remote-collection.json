@@ -1,0 +1,31 @@
+{
+  "source": "Synthetic: a reply that names another actor's followers collection",
+  "recipients": [
+    "https://mastodon.example.org/users/bob",
+    "https://mastodon.example.org/users/bob/followers"
+  ],
+  "activity": {
+    "@context": "https://www.w3.org/ns/activitystreams",
+    "id": "{{actor}}/notes/3007/activity",
+    "type": "Create",
+    "actor": "{{actor}}",
+    "to": [
+      "https://mastodon.example.org/users/bob"
+    ],
+    "cc": [
+      "https://mastodon.example.org/users/bob/followers"
+    ],
+    "object": {
+      "id": "{{actor}}/notes/3007",
+      "type": "Note",
+      "content": "to your followers too",
+      "inReplyTo": "https://mastodon.example.org/users/bob/statuses/9",
+      "to": [
+        "https://mastodon.example.org/users/bob"
+      ],
+      "cc": [
+        "https://mastodon.example.org/users/bob/followers"
+      ]
+    }
+  }
+}

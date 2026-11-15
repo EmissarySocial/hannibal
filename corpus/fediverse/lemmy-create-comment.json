@@ -1,0 +1,64 @@
+{
+  "source": "Lemmy 0.19: a comment that replies to another actor",
+  "recipients": [
+    "https://lemmy.example.org/c/gardening",
+    "https://mastodon.example.org/users/bob"
+  ],
+  "activity": {
+    "@context": [
+      "https://join-lemmy.org/context.json",
+      "https://www.w3.org/ns/activitystreams"
+    ],
+    "id": "https://author.example.org/activities/create/1a0b9c8d-7e6f-5a4b-3c2d-1e0f9a8b7c6d",
+    "type": "Create",
+    "actor": "{{actor}}",
+    "to": [
+      "https://www.w3.org/ns/activitystreams#Public"
+    ],
+    "cc": [
+      "https://lemmy.example.org/c/gardening",
+      "https://mastodon.example.org/users/bob"
+    ],
+    "audience": "https://lemmy.example.org/c/gardening",
+    "tag": [
+      {
+        "href": "https://mastodon.example.org/users/bob",
+        "name": "@bob@mastodon.example.org",
+        "type": "Mention"
+      }
+    ],
+    "object": {
+      "id": "https://author.example.org/comment/9001",
+      "type": "Note",
+      "attributedTo": "{{actor}}",
+      "to": [
+        "https://www.w3.org/ns/activitystreams#Public"
+      ],
+      "cc": [
+        "https://lemmy.example.org/c/gardening",
+        "https://mastodon.example.org/users/bob"
+      ],
+      "audience": "https://lemmy.example.org/c/gardening",
+      "content": "<p>Nice harvest!</p>\n",
+      "mediaType": "text/html",
+      "source": {
+        "content": "Nice harvest!",
+        "mediaType": "text/markdown"
+      },
+      "inReplyTo": "https://lemmy.example.org/post/77",
+      "published": "2026-10-03T14:50:00.000000Z",
+      "tag": [
+        {
+          "href": "https://mastodon.example.org/users/bob",
+          "name": "@bob@mastodon.example.org",
+          "type": "Mention"
+        }
+      ],
+      "distinguished": false,
+      "language": {
+        "identifier": "en",
+        "name": "English"
+      }
+    }
+  }
+}

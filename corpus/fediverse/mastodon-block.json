@@ -1,0 +1,11 @@
+{
+  "source": "Mastodon 4.x: a Block, which carries no addressing",
+  "recipients": [],
+  "activity": {
+    "@context": "https://www.w3.org/ns/activitystreams",
+    "id": "{{actor}}#blocks/31",
+    "type": "Block",
+    "actor": "{{actor}}",
+    "object": "https://mastodon.example.org/users/bob"
+  }
+}

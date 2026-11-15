@@ -1,0 +1,33 @@
+{
+  "source": "ActivityPub client-to-server: blind recipients written as one string and as one object",
+  "recipients": [
+    "https://mastodon.example.org/users/bob",
+    "https://blind.example.org/users/frank",
+    "https://blind.example.org/users/grace"
+  ],
+  "activity": {
+    "@context": "https://www.w3.org/ns/activitystreams",
+    "id": "{{actor}}/notes/2004/activity",
+    "type": "Create",
+    "actor": "{{actor}}",
+    "to": "https://mastodon.example.org/users/bob",
+    "bto": "https://blind.example.org/users/frank",
+    "bcc": {
+      "id": "https://blind.example.org/users/grace",
+      "type": "Person"
+    },
+    "object": {
+      "id": "{{actor}}/notes/2004",
+      "type": "Note",
+      "attributedTo": "{{actor}}",
+      "content": "<p>For a few people only</p>",
+      "published": "2026-10-03T14:21:07Z",
+      "to": "https://mastodon.example.org/users/bob",
+      "bto": "https://blind.example.org/users/frank",
+      "bcc": {
+        "id": "https://blind.example.org/users/grace",
+        "type": "Person"
+      }
+    }
+  }
+}

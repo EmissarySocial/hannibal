@@ -57,9 +57,11 @@ The send task reads only the error's status code and wait, so an option that ref
 | --- | --- |
 | nothing (2xx) | succeeds |
 | 423 | succeeds without delivering: the host gets nothing, and nothing is held for it |
-| 429 | is rescheduled for the wait it names, between one second and one hour, without spending a retry |
+| 429 | is rescheduled for the wait it names, between one second and one hour, without spending a retry. Once the delivery was first queued more than seven days ago, it fails for good |
 | 408, 5xx, a timeout, or no answer | is retried |
 | 404 or 410 | fails for good |
 | any other 4xx | fails for good |
 
 A send task is retried 17 times, doubling its wait up to one day, which covers just over seven days.
+
+A task whose signing actor cannot be loaded fails for good when the application's `signers` function answers 404 or 410, and is retried on any other error. A key that cannot sign fails for good, and nothing is sent.
