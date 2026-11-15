@@ -7,9 +7,10 @@ import (
 	"encoding/json"
 	"iter"
 	"slices"
+	"time"
 
 	"github.com/benpate/derp"
-	"github.com/benpate/hannibal/vocab"
+	"github.com/benpate/hannibal/streams"
 	"github.com/benpate/rosetta/mapof"
 	"github.com/benpate/turbine/queue"
 	"github.com/rs/zerolog/log"
@@ -21,13 +22,14 @@ func (pipeline Pipeline) FanOut(args mapof.Any) queue.Result {
 
 	const location = "hannibal.delivery.Pipeline.FanOut"
 
-	activity := args.GetMap("activity")
+	// RULE: The Document is made without a client, so reading it loads nothing
+	activity := streams.NewDocument(args.GetMap("activity"))
 
 	// RULE: The activity is sent as the actor that it names, so that actor must be one of ours
-	actorID := firstReferenceID(activity[vocab.PropertyActor])
+	actorID := activity.ActorID()
 
 	if _, err := pipeline.signers(actorID); err != nil {
-		return queue.Failure(derp.Wrap(err, location, "Unable to locate actor", "actorID: "+actorID))
+		return signerResult(err, location, actorID)
 	}
 
 	// Decide who receives the activity, before anything is queued
@@ -58,7 +60,7 @@ func (pipeline Pipeline) FanOut(args mapof.Any) queue.Result {
 
 // recipients runs the stages that turn an activity's addressing into the list of people to
 // deliver to: actor URLs, and mailto: URLs for those who receive email
-func (pipeline Pipeline) recipients(actorID string, activity map[string]any) ([]string, error) {
+func (pipeline Pipeline) recipients(actorID string, activity streams.Document) ([]string, error) {
 
 	const location = "hannibal.delivery.Pipeline.recipients"
 
@@ -78,8 +80,8 @@ func (pipeline Pipeline) recipients(actorID string, activity map[string]any) ([]
 	// Stack the stages. Nothing runs until the list is collected below.
 	var expandError error
 
-	extracted := Extract(activity)
-	withRelays := ExpandRelays(extracted, pipeline.relaysFor(activity))
+	extracted := extract(activity)
+	withRelays := ExpandRelays(extracted, pipeline.relaysFor(activity.Map()))
 	expanded := ExpandCollections(withRelays, pipeline.collections, func(err error) {
 		expandError = err
 	})
@@ -96,7 +98,7 @@ func (pipeline Pipeline) recipients(actorID string, activity map[string]any) ([]
 	return result, nil
 }
 
-// blockedHosts returns the hosts that nothing should be queued for, read once
+// loadBlockedHosts returns the hosts that nothing should be queued for, read once
 func (pipeline Pipeline) loadBlockedHosts() (HostList, error) {
 
 	if pipeline.blockedHosts == nil {
@@ -157,12 +159,18 @@ type outboundMessage struct {
 }
 
 // message removes the blind recipients, attaches the integrity proof, and serializes the result once
-func (pipeline Pipeline) message(actorID string, activity map[string]any) (outboundMessage, error) {
+func (pipeline Pipeline) message(actorID string, activity streams.Document) (outboundMessage, error) {
 
 	const location = "hannibal.delivery.Pipeline.message"
 
-	// RULE: Strip first. A proof made over the blind recipients would fail once they are removed.
-	stripped := StripBlindRecipients(activity)
+	// RULE: Strip first, from a copy. A proof made over the blind recipients would fail once
+	// they are removed, and the fan-out still reads them from the original.
+	stripped, err := StripBlindRecipients(activity.Map())
+
+	if err != nil {
+		return outboundMessage{}, derp.Wrap(err, location, "Removing blind recipients")
+	}
+
 	proven := pipeline.prove(actorID, stripped)
 
 	serialized, err := json.Marshal(proven)
@@ -175,7 +183,7 @@ func (pipeline Pipeline) message(actorID string, activity map[string]any) (outbo
 	encoded := base64.StdEncoding.EncodeToString(hash[:])
 
 	// An activity with no id of its own is identified by its content
-	activityID := firstReferenceID(activity[vocab.PropertyID])
+	activityID := activity.ID()
 
 	if activityID == "" {
 		activityID = "sha256:" + hex.EncodeToString(hash[:])
@@ -226,12 +234,13 @@ func (pipeline Pipeline) publish(actorID string, recipientURL string, message ou
 	task := queue.NewTask(
 		TaskSend,
 		mapof.Any{
-			"actor":         actorID,
-			"recipient":     recipientURL,
-			"activityId":    message.activityID,
-			"body":          message.body,
-			"digest":        message.digest,
-			"contentDigest": message.contentDigest,
+			"actor":          actorID,
+			"recipient":      recipientURL,
+			"activityId":     message.activityID,
+			"body":           message.body,
+			"digest":         message.digest,
+			"contentDigest":  message.contentDigest,
+			argumentQueuedAt: time.Now().Unix(),
 		},
 		queue.WithSignature(message.activityID+" "+recipientURL),
 		queue.WithRetryMax(sendRetryMax),
@@ -258,16 +267,4 @@ func (pipeline Pipeline) publishEmail(address string, message outboundMessage) e
 	}
 
 	return nil
-}
-
-// firstReferenceID returns the id of the first reference in a property value, or an empty string
-func firstReferenceID(value any) string {
-
-	ids := referenceIDs(value)
-
-	if len(ids) == 0 {
-		return ""
-	}
-
-	return ids[0]
 }

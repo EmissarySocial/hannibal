@@ -3,6 +3,7 @@ package delivery
 import (
 	"iter"
 
+	"github.com/benpate/hannibal/streams"
 	"github.com/rs/zerolog/log"
 )
 
@@ -39,11 +40,16 @@ var addressingFields = []string{FieldTo, FieldCC, FieldBTo, FieldBCC}
 // Extract yields every recipient that an activity names in `to`, `cc`, `bto` and `bcc`, with the
 // property it came from. It reads the activity only: nothing is looked up, expanded or dropped.
 func Extract(activity map[string]any) iter.Seq[Recipient] {
+	return extract(streams.NewDocument(activity))
+}
+
+// extract yields the recipients of an activity that is already a Document
+func extract(activity streams.Document) iter.Seq[Recipient] {
 
 	return func(yield func(Recipient) bool) {
 
 		for _, field := range addressingFields {
-			for _, recipientURL := range referenceIDs(activity[field]) {
+			for recipientURL := range activity.Get(field).RangeIDs() {
 				if !yield(Recipient{URL: recipientURL, Field: field}) {
 					return
 				}
@@ -189,44 +195,4 @@ func Filter(recipientURLs iter.Seq[string], allowed func(recipientURL string) bo
 			}
 		}
 	}
-}
-
-// referenceIDs returns the ids that a property value names, without loading anything. The
-// value may be one reference or a list, and each reference may be a URL or an object with an id.
-func referenceIDs(value any) []string {
-
-	switch typed := value.(type) {
-
-	case nil:
-		return nil
-
-	case string:
-		return []string{typed}
-
-	case []string:
-		return typed
-
-	case map[string]any:
-		if id, isString := typed["id"].(string); isString {
-			return []string{id}
-		}
-		return nil
-	}
-
-	// Any other shape goes through the same copy that removes blind recipients, which turns
-	// every named map and slice type into a plain one
-	switch plain := stripValue(value).(type) {
-
-	case map[string]any:
-		return referenceIDs(plain)
-
-	case []any:
-		result := make([]string, 0, len(plain))
-		for _, item := range plain {
-			result = append(result, referenceIDs(item)...)
-		}
-		return result
-	}
-
-	return nil
 }
