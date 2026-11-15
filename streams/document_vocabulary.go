@@ -5,6 +5,7 @@ import (
 
 	"github.com/benpate/hannibal/vocab"
 	"github.com/benpate/rosetta/convert"
+	"github.com/benpate/rosetta/sliceof"
 )
 
 /******************************************
@@ -361,7 +362,7 @@ func (document Document) Type() string {
 // Types returns the document's Types property.
 // A special case of the Type() function, which returns a slice of types
 // https://www.w3.org/TR/activitystreams-vocabulary/#dfn-type
-func (document Document) Types() []string {
+func (document Document) Types() sliceof.String {
 
 	// Try the ActivityPub standard "type" property first
 	if value := document.Get(vocab.PropertyType); !value.IsNil() {

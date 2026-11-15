@@ -327,29 +327,16 @@ func (document Document) NotPublic() bool {
 	return !document.IsPublic()
 }
 
-// Recipients retrieves all recipients of an activity,
-// i.e. actors identified in the to, cc, bcc, and bto fields
+// Recipients returns the ID of every recipient that an activity names in its to, cc, bto and
+// bcc properties, in that order
 func (document Document) Recipients() sliceof.String {
 
-	result := make([]string, 0)
+	result := make(sliceof.String, 0)
 
-	// Define properties to scan
-	properties := []string{
-		vocab.PropertyTo,
-		vocab.PropertyCC,
-		vocab.PropertyBTo,
-		vocab.PropertyBCC,
+	for _, property := range []string{vocab.PropertyTo, vocab.PropertyCC, vocab.PropertyBTo, vocab.PropertyBCC} {
+		result = append(result, document.Get(property).IDs()...)
 	}
 
-	// Scan each property in the list, adding IDs to the result
-	for _, property := range properties {
-
-		for value := range document.Get(property).Range() {
-			result = append(result, value.ID())
-		}
-	}
-
-	// Success
 	return result
 }
 

@@ -1,10 +1,14 @@
 package streams
 
 import (
+	"slices"
 	"testing"
 
 	"github.com/benpate/hannibal/vocab"
+	"github.com/benpate/rosetta/mapof"
+	"github.com/benpate/rosetta/sliceof"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 // TestDocument_Range confirms Range yields each element of a slice document as
@@ -109,4 +113,96 @@ func TestDocument_RangeMentions(t *testing.T) {
 	}
 
 	assert.Equal(t, []string{"https://example.com/@alice", "https://example.com/@bob"}, mentions)
+}
+
+// TestDocument_IDs verifies each shape that a property can take, that an element with no ID
+// is skipped, and that IDs and RangeIDs agree
+func TestDocument_IDs(t *testing.T) {
+
+	const alice = "https://example.com/users/alice"
+	const bob = "https://example.com/users/bob"
+
+	type namedList []any
+	type namedMap map[string]any
+
+	for name, test := range map[string]struct {
+		value    any
+		expected sliceof.String
+	}{
+		"nil":               {nil, sliceof.String{}},
+		"string":            {alice, sliceof.String{alice}},
+		"empty string":      {"", sliceof.String{}},
+		"object":            {map[string]any{"id": alice}, sliceof.String{alice}},
+		"JSON-LD id":        {map[string]any{"@id": alice}, sliceof.String{alice}},
+		"object without id": {map[string]any{"type": "Person"}, sliceof.String{}},
+		"number":            {42, sliceof.String{}},
+		"list":              {[]any{alice, map[string]any{"id": bob}, 42, map[string]any{}, ""}, sliceof.String{alice, bob}},
+		"list of nothing":   {[]any{map[string]any{}, 42}, sliceof.String{}},
+		"list of strings":   {[]string{alice, bob}, sliceof.String{alice, bob}},
+		"sliceof.String":    {sliceof.String{alice}, sliceof.String{alice}},
+		"mapof.Any":         {mapof.Any{"id": alice}, sliceof.String{alice}},
+		"named list":        {namedList{alice, namedMap{"id": bob}}, sliceof.String{alice, bob}},
+		"named map":         {namedMap{"id": alice}, sliceof.String{alice}},
+		"email":             {"mailto:dana@example.com", sliceof.String{"mailto:dana@example.com"}},
+	} {
+		t.Run(name, func(t *testing.T) {
+
+			property := NewDocument(map[string]any{"to": test.value}).Get("to")
+
+			require.Equal(t, test.expected, property.IDs())
+			require.Equal(t, []string(test.expected), slices.AppendSeq(make([]string, 0), property.RangeIDs()))
+		})
+	}
+}
+
+// TestDocument_IDs_LoadsNothing verifies that reading the IDs of bare URLs never asks the
+// Document's client for them
+func TestDocument_IDs_LoadsNothing(t *testing.T) {
+
+	client := newRecordingClient()
+
+	document := NewDocument(map[string]any{
+		"to":    []any{"https://example.com/users/alice", "https://example.com/users/bob"},
+		"actor": "https://example.com/users/carol",
+	}, WithClient(client))
+
+	require.Len(t, document.To().IDs(), 2)
+	require.Equal(t, sliceof.String{"https://example.com/users/carol"}, document.Get("actor").IDs())
+	require.Empty(t, client.options, "no URL was loaded")
+}
+
+// TestDocument_RangeIDs_StopsEarly verifies that the iterator stops when its consumer does
+func TestDocument_RangeIDs_StopsEarly(t *testing.T) {
+
+	document := NewDocument([]any{"https://example.com/1", map[string]any{}, "https://example.com/2", "https://example.com/3"})
+
+	seen := make([]string, 0)
+
+	for id := range document.RangeIDs() {
+		seen = append(seen, id)
+
+		if len(seen) == 2 {
+			break
+		}
+	}
+
+	require.Equal(t, []string{"https://example.com/1", "https://example.com/2"}, seen)
+}
+
+// TestDocument_Recipients_SkipsWhatHasNoID verifies that a recipient written as an object is
+// read by its id, and that one with no id is left out
+func TestDocument_Recipients_SkipsWhatHasNoID(t *testing.T) {
+
+	document := NewDocument(map[string]any{
+		"to":  []any{map[string]any{"id": "https://example.com/users/alice"}, map[string]any{"type": "Person"}},
+		"cc":  "https://example.com/users/bob",
+		"bto": []any{},
+		"bcc": []any{42, "https://example.com/users/dave"},
+	})
+
+	require.Equal(t, sliceof.String{
+		"https://example.com/users/alice",
+		"https://example.com/users/bob",
+		"https://example.com/users/dave",
+	}, document.Recipients())
 }

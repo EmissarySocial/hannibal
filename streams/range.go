@@ -2,9 +2,11 @@ package streams
 
 import (
 	"iter"
+	"slices"
 
 	"github.com/benpate/derp"
 	"github.com/benpate/hannibal/vocab"
+	"github.com/benpate/rosetta/sliceof"
 )
 
 // Range returns an iterator over each sub-document of the Document.
@@ -33,19 +35,32 @@ func (document Document) RangeWithIndex() iter.Seq2[int, Document] {
 	}
 }
 
-// RangeIDs returns an iterator that yields the IDs of each element of a Document.
-// If the Document is empty, it yields no values.
-// If the Document is a single object, then it yields the ID of that object.
-// If the Document is a list, then it yields the IDs of each object in the list
+// RangeIDs returns an iterator over the ID of each element of a Document: one for a single
+// object, and one for each object in a list. An element with no ID is skipped. It loads nothing.
 func (document Document) RangeIDs() iter.Seq[string] {
 
 	return func(yield func(string) bool) {
 		for ; document.NotNil(); document = document.Tail() {
-			if !yield(document.Head().ID()) {
+
+			// RULE: An empty ID names nothing, so no caller is handed one
+			id := document.Head().ID()
+
+			if id == "" {
+				continue
+			}
+
+			if !yield(id) {
 				return
 			}
 		}
 	}
+}
+
+// IDs returns the ID of each element of a Document, as RangeIDs yields them. It is the
+// plural of ID, in the way that Types is the plural of Type.
+func (document Document) IDs() sliceof.String {
+	result := make(sliceof.String, 0, document.Len())
+	return slices.AppendSeq(result, document.RangeIDs())
 }
 
 // RangeMentions returns an iterator over the IDs mentioned by the Document.

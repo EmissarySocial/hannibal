@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/benpate/hannibal/vocab"
+	"github.com/benpate/rosetta/sliceof"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -47,17 +48,17 @@ func TestDocument_Type(t *testing.T) {
 func TestDocument_Types(t *testing.T) {
 
 	// Single value.
-	assert.Equal(t, []string{vocab.ObjectTypeNote},
+	assert.Equal(t, sliceof.String{vocab.ObjectTypeNote},
 		NewDocument(map[string]any{vocab.PropertyType: vocab.ObjectTypeNote}).Types())
 
 	// Multiple values.
-	assert.Equal(t, []string{vocab.ObjectTypeNote, "Hashtag"},
+	assert.Equal(t, sliceof.String{vocab.ObjectTypeNote, "Hashtag"},
 		NewDocument(map[string]any{
 			vocab.PropertyType: []any{vocab.ObjectTypeNote, "Hashtag"},
 		}).Types())
 
 	// Absent -> [Unknown].
-	assert.Equal(t, []string{vocab.Unknown}, NewDocument(map[string]any{}).Types())
+	assert.Equal(t, sliceof.String{vocab.Unknown}, NewDocument(map[string]any{}).Types())
 }
 
 // TestDocument_ScalarAccessors sweeps the simple property accessors against one
