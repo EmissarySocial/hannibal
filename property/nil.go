@@ -9,8 +9,11 @@ func (value Nil) Get(string) Value {
 }
 
 // Set returns the value with the given property set
-func (value Nil) Set(string, any) Value {
-	return Nil{}
+func (value Nil) Set(name string, newValue any) Value {
+
+	// Promote into a Map that holds the property, the same way a scalar's Set does.
+	// Returning Nil here would discard the value and report nothing.
+	return Map{}.Set(name, newValue)
 }
 
 // Head returns the first value in a slice

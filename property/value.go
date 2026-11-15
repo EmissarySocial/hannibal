@@ -1,6 +1,8 @@
 package property
 
 import (
+	"encoding/json"
+	"math"
 	"time"
 
 	"github.com/benpate/rosetta/convert"
@@ -68,6 +70,34 @@ func NewValue(value any) Value {
 
 	case int64:
 		return Int64(typed)
+
+	// The narrower and unsigned kinds never come from JSON, but a database driver returns them
+	case int8:
+		return Int(typed)
+
+	case int16:
+		return Int(typed)
+
+	case int32:
+		return Int(typed)
+
+	case uint8:
+		return Int(typed)
+
+	case uint16:
+		return Int(typed)
+
+	case uint32:
+		return Int64(typed)
+
+	case uint:
+		return unsignedValue(uint64(typed))
+
+	case uint64:
+		return unsignedValue(typed)
+
+	case json.Number:
+		return numberValue(typed)
 
 	case map[string]any:
 		return Map(typed)
@@ -192,4 +222,29 @@ func IsTime(value any) bool {
 		return is.IsTime()
 	}
 	return false
+}
+
+// unsignedValue returns an unsigned integer as an Int64, or as a Float when it is too large for one
+func unsignedValue(value uint64) Value {
+
+	if value > math.MaxInt64 {
+		return Float(value)
+	}
+
+	return Int64(value) // #nosec G115 -- the value was just checked against MaxInt64
+}
+
+// numberValue returns a number that a JSON decoder kept as text: an Int64 when it is a whole
+// number that fits in one, a Float when it is any other number, and Nil when it is not a number
+func numberValue(value json.Number) Value {
+
+	if whole, err := value.Int64(); err == nil {
+		return Int64(whole)
+	}
+
+	if fraction, err := value.Float64(); err == nil {
+		return Float(fraction)
+	}
+
+	return Nil{}
 }

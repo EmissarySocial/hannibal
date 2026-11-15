@@ -14,7 +14,9 @@ func TestNil(t *testing.T) {
 
 	// Every navigation returns Nil again -- Nil is a fixed point.
 	assert.Equal(t, Nil{}, value.Get("anything"))
-	assert.Equal(t, Nil{}, value.Set("anything", "ignored"))
+
+	// Setting a property promotes Nil into a Map that holds it, as it does for a scalar
+	assert.Equal(t, Map{"anything": "kept"}, value.Set("anything", "kept"))
 	assert.Equal(t, Nil{}, value.Head())
 	assert.Equal(t, Nil{}, value.Tail())
 	assert.Equal(t, Nil{}, value.Clone())
