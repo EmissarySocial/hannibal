@@ -13,10 +13,10 @@ const ContextTypeSecurity = "https://w3id.org/security/v1"
 // https://swicg.github.io/activitypub-e2ee/mls
 const ContextTypeSocialWebMLS = "https://purl.archive.org/socialweb/mls"
 
-// ContextTypeToot is a context type.
-// https://joinmastodon.org/ns#
+// ContextTypeToot declares the terms that Mastodon adds, under the namespace as Mastodon writes it.
+// RULE: The prefix is `http://`, as in Mastodon's context_helper.rb. See AGENTS.md.
 var ContextTypeToot = map[string]any{
-	"toot": "https://joinmastodon.org/ns#",
+	"toot": "http://joinmastodon.org/ns#",
 	// RULE: Mastodon's exact prefix, not canonical schema.org. JSON-LD readers
 	// such as Funkwhale match "http://schema.org#value". See AGENTS.md.
 	"schema":        "http://schema.org#",
