@@ -4,10 +4,12 @@ import (
 	"bytes"
 	"crypto/rand"
 	"crypto/rsa"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 
+	"github.com/benpate/derp"
 	"github.com/benpate/hannibal/sigs"
 	"github.com/benpate/hannibal/streams"
 	"github.com/stretchr/testify/require"
@@ -27,9 +29,9 @@ func TestHTTPSig_NoSignature(t *testing.T) {
 
 // TestHTTPSig_DefaultKeyFinder confirms that, when no key finder is supplied,
 // the validator falls back to its default finder, which loads the signing actor
-// from its origin server. Offline, that load fails, so a signed request whose
-// actor cannot be resolved is rejected as Invalid. This exercises the
-// defaultKeyFinder construction and its error path.
+// from its origin server. Offline, that load fails, so the key cannot be found
+// and the validator abstains. This exercises the defaultKeyFinder construction
+// and its error path.
 func TestHTTPSig_DefaultKeyFinder(t *testing.T) {
 
 	actorID := "https://offline.example.com/users/alice"
@@ -39,7 +41,68 @@ func TestHTTPSig_DefaultKeyFinder(t *testing.T) {
 	v := NewHTTPSig(nil)
 	activity := actorDocument(actorID)
 
-	require.Equal(t, ResultInvalid, v.Validate(request, &activity))
+	require.Equal(t, ResultUnknown, v.Validate(request, &activity))
+}
+
+// TestDefaultKeyFinder_UsesANetworkClient verifies that the default finder asks the actor's
+// server for the key. A Document made without a client loads nothing, so the finder must give
+// its Document a client of its own.
+func TestDefaultKeyFinder_UsesANetworkClient(t *testing.T) {
+
+	activity := actorDocument("https://offline.example.com/users/alice")
+
+	_, err := defaultKeyFinder(&activity)("https://offline.example.com/users/alice#main-key")
+	require.Error(t, err)
+
+	// The failure comes from the request, and not from a Document that had no client
+	locations := make([]string, 0)
+
+	for inner := err; inner != nil; inner = errors.Unwrap(inner) {
+		locations = append(locations, derp.Location(inner))
+	}
+
+	require.Contains(t, locations, "hannibal.streams.Client.Load")
+	require.NotContains(t, locations, "hannibal.streams.NilClient.Load")
+}
+
+// TestHTTPSig_KeyNotFound confirms that a signature whose key cannot be found is left to the
+// next validator, while a key that was found and does not match is refused
+func TestHTTPSig_KeyNotFound(t *testing.T) {
+
+	actorID := "https://example.com/users/alice"
+	request, _ := signedRequestForActor(t, actorID+"#main-key")
+	activity := actorDocument(actorID)
+
+	gone := NewHTTPSig(func(string) (string, error) {
+		return "", derp.Gone("test", "Actor has been deleted")
+	})
+	require.Equal(t, ResultUnknown, gone.Validate(request, &activity))
+
+	// Another actor's key is found, and the signature does not match it
+	otherRequest, otherKey := signedRequestForActor(t, actorID+"#main-key")
+	_ = otherRequest
+	wrongKey := NewHTTPSig(otherKey)
+	request, _ = signedRequestForActor(t, actorID+"#main-key")
+	require.Equal(t, ResultInvalid, wrongKey.Validate(request, &activity))
+}
+
+// TestHTTPSig_With confirms the copy methods keep what they do not replace
+func TestHTTPSig_With(t *testing.T) {
+
+	actorID := "https://example.com/users/alice"
+	request, keyFinder := signedRequestForActor(t, actorID+"#main-key")
+	activity := actorDocument(actorID)
+
+	failing := func(string) (string, error) {
+		return "", derp.Internal("test", "This finder is replaced")
+	}
+
+	original := NewHTTPSig(failing, sigs.VerifierIgnoreTimeout())
+	replaced := original.WithKeyFinder(keyFinder).WithOptions(sigs.VerifierMaxBodySize(1 << 21))
+
+	require.Equal(t, ResultValid, replaced.Validate(request, &activity))
+	require.Len(t, replaced.options, 2)
+	require.Len(t, original.options, 1, "the original is unchanged")
 }
 
 // TestHTTPSig_Valid confirms a correctly signed request whose signature actor
@@ -189,4 +252,30 @@ func signedRequestForActor(t *testing.T, keyID string) (*http.Request, sigs.Publ
 	}
 
 	return request, keyFinder
+}
+
+// TestChain_DeleteFromADeletedAccount confirms the case both validators exist for: a signed
+// Delete whose key is gone is decided by whether the object is gone
+func TestChain_DeleteFromADeletedAccount(t *testing.T) {
+
+	// The account's server answers 410 for everything
+	server, _ := serveDeleteTarget(t, http.StatusGone, "")
+	actorID := server.URL + "/users/alice"
+
+	request, _ := signedRequestForActor(t, actorID+"#main-key")
+
+	keyGone := NewHTTPSig(func(string) (string, error) {
+		return "", derp.Gone("test", "Actor has been deleted")
+	})
+
+	activity := streams.NewDocument(map[string]any{"type": "Delete", "actor": actorID, "object": actorID})
+
+	require.Equal(t, ResultUnknown, keyGone.Validate(request, &activity))
+	require.Equal(t, ResultValid, DeletedObject{allowPrivateIPs: true}.Validate(request, &activity))
+
+	// The object's own server decides, whoever the activity names as its actor
+	elsewhere := streams.NewDocument(map[string]any{"type": "Delete", "actor": "https://other.example/users/mallory", "object": actorID})
+
+	require.Equal(t, ResultUnknown, keyGone.Validate(request, &elsewhere))
+	require.Equal(t, ResultValid, DeletedObject{allowPrivateIPs: true}.Validate(request, &elsewhere))
 }

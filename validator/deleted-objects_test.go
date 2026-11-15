@@ -53,7 +53,18 @@ func TestDeletedObject_Responses(t *testing.T) {
 	assert.Equal(t, ResultValid, validateAgainst(http.StatusNotFound, ""))
 	assert.Equal(t, ResultValid, validateAgainst(http.StatusGone, ""))
 
+	// A Tombstone in its place proves it too, however the type is written
+	assert.Equal(t, ResultValid, validateAgainst(http.StatusOK, `{"type":"Tombstone","formerType":"Note"}`))
+	assert.Equal(t, ResultValid, validateAgainst(http.StatusOK, `{"type":["Tombstone"]}`))
+
 	// An object that still exists disproves it
+	assert.Equal(t, ResultInvalid, validateAgainst(http.StatusOK, `{"formerType":"Tombstone","type":"Note"}`))
+	assert.Equal(t, ResultInvalid, validateAgainst(http.StatusOK, `"Tombstone"`))
+	assert.Equal(t, ResultInvalid, validateAgainst(http.StatusOK, `[{"type":"Tombstone"}]`))
+	assert.Equal(t, ResultInvalid, validateAgainst(http.StatusOK, `null`))
+	assert.Equal(t, ResultInvalid, validateAgainst(http.StatusOK, ``))
+	assert.Equal(t, ResultInvalid, validateAgainst(http.StatusOK, `<html>Tombstone</html>`))
+	assert.Equal(t, ResultInvalid, validateAgainst(http.StatusOK, ``))
 	assert.Equal(t, ResultInvalid, validateAgainst(http.StatusOK, `{"type":"Note"}`))
 
 	// Any other failure proves nothing either way
@@ -104,10 +115,42 @@ func serveDeleteTarget(t *testing.T, status int, body string) (*httptest.Server,
 	return server, requests
 }
 
-// deleteActivity returns a Delete activity whose object is the given URL
+// deleteActivity returns a Delete activity whose object is the given URL, from an actor on the
+// same server
 func deleteActivity(objectID string) streams.Document {
 	return streams.NewDocument(map[string]any{
 		vocab.PropertyType:   vocab.ActivityTypeDelete,
+		vocab.PropertyActor:  objectID + "/actor",
 		vocab.PropertyObject: objectID,
 	})
+}
+
+// TestDeletedObject_AnotherOrigin confirms that the object's own server decides, whoever the
+// activity names as its actor
+func TestDeletedObject_AnotherOrigin(t *testing.T) {
+
+	for name, actor := range map[string]any{
+		"another host":                      "https://other.example/users/mallory",
+		"no actor":                          nil,
+		"empty actor":                       "",
+		"an embedded actor on another host": map[string]any{"id": "https://other.example/users/mallory"},
+	} {
+		gone, _ := serveDeleteTarget(t, http.StatusNotFound, "")
+		present, _ := serveDeleteTarget(t, http.StatusOK, `{"type":"Note"}`)
+
+		goneActivity := streams.NewDocument(map[string]any{
+			vocab.PropertyType:   vocab.ActivityTypeDelete,
+			vocab.PropertyActor:  actor,
+			vocab.PropertyObject: gone.URL + "/notes/1",
+		})
+
+		presentActivity := streams.NewDocument(map[string]any{
+			vocab.PropertyType:   vocab.ActivityTypeDelete,
+			vocab.PropertyActor:  actor,
+			vocab.PropertyObject: present.URL + "/notes/1",
+		})
+
+		assert.Equal(t, ResultValid, DeletedObject{allowPrivateIPs: true}.Validate(blankRequest(), &goneActivity), name)
+		assert.Equal(t, ResultInvalid, DeletedObject{allowPrivateIPs: true}.Validate(blankRequest(), &presentActivity), name)
+	}
 }

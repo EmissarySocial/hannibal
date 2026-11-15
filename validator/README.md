@@ -20,7 +20,7 @@ A validator returns one of three results, and the router walks the chain accordi
 
 ## Included Validators
 
-- **`HTTPSig`** verifies the request's HTTP Signature against the actor's public key.
+- **`HTTPSig`** verifies the request's HTTP Signature against the actor's public key. It returns `ResultUnknown` when the key cannot be found, so that the next validator decides, and `ResultInvalid` when the signature does not match.
 - **`MatchActor`** confirms the activity's actor matches an expected actor ID.
-- **`DeletedObject`** confirms a `Delete` activity refers to an object that is actually gone.
+- **`DeletedObject`** confirms a `Delete` activity refers to an object that is actually gone. It fetches the object's URL, and the `Delete` is valid when the answer is 404, 410, or a `Tombstone`. Any other document means the object still exists, and the `Delete` is invalid.
 - **`None`** accepts every activity without checking it (always `ResultValid`). Use it only on routes that authenticate requests some other way, such as with a cookie or an API key.

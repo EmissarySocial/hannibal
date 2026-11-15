@@ -39,8 +39,11 @@ func (v DeletedObject) Validate(_ *http.Request, activity *streams.Document) Res
 	}
 
 	// Try to retrieve the original document, reading no more than any other ActivityStreams client
+	var body []byte
+
 	txn := remote.Get(objectID).
 		Header("Accept", "application/activity+json").
+		Result(&body).
 		MaxResponseSize(streams.MaxResponseSize).
 		AllowPrivateIPs(v.allowPrivateIPs)
 
@@ -58,6 +61,29 @@ func (v DeletedObject) Validate(_ *http.Request, activity *streams.Document) Res
 		return ResultUnknown
 	}
 
+	// RULE: A Tombstone in the object's place says that it was deleted, the same as "gone" does
+	if isTombstone(body) {
+		return ResultValid
+	}
+
 	// Fall through means that the document still exists, so the "delete" transaction is invalid.
 	return ResultInvalid
+}
+
+// isTombstone returns TRUE if a response body is an ActivityStreams Tombstone
+func isTombstone(body []byte) bool {
+
+	document, err := streams.ParseDocument(body)
+
+	// A body that is not JSON is some other document, which still exists
+	if err != nil {
+		return false
+	}
+
+	// RULE: Only a JSON object can be a Tombstone. A list that holds one is something else.
+	if !document.IsMap() {
+		return false
+	}
+
+	return document.Type() == vocab.ObjectTypeTombstone
 }

@@ -2,6 +2,7 @@ package validator
 
 import (
 	"net/http"
+	"slices"
 
 	"github.com/benpate/derp"
 	"github.com/benpate/hannibal/sigs"
@@ -29,6 +30,18 @@ func NewHTTPSig(keyFinder sigs.PublicKeyFinder, options ...sigs.VerifierOption) 
 	}
 }
 
+// WithKeyFinder returns a copy of this validator that uses another key finder, and keeps its options
+func (validator HTTPSig) WithKeyFinder(keyFinder sigs.PublicKeyFinder) HTTPSig {
+	validator.keyFinder = keyFinder
+	return validator
+}
+
+// WithOptions returns a copy of this validator with more verifier options, applied after its own
+func (validator HTTPSig) WithOptions(options ...sigs.VerifierOption) HTTPSig {
+	validator.options = append(slices.Clone(validator.options), options...)
+	return validator
+}
+
 // Validate uses the hannibal/sigs library to verify that the HTTP
 // request is signed with a valid key.
 func (validator HTTPSig) Validate(request *http.Request, activity *streams.Document) Result {
@@ -45,8 +58,29 @@ func (validator HTTPSig) Validate(request *http.Request, activity *streams.Docum
 		keyFinder = defaultKeyFinder(activity)
 	}
 
+	// Note whether the key could be found, which is not the same as a signature that is wrong
+	keyNotFound := false
+
+	findKey := func(keyID string) (string, error) {
+
+		key, err := keyFinder(keyID)
+
+		if err != nil {
+			keyNotFound = true
+		}
+
+		return key, err
+	}
+
 	// Verify the request using the Actor's public key
-	signature, err := sigs.Verify(request, keyFinder, validator.options...)
+	signature, err := sigs.Verify(request, findKey, validator.options...)
+
+	// RULE: A signature whose key cannot be found proves nothing either way, so the next
+	// validator decides. A deleted account signs its last Delete with a key that is already gone.
+	if (err != nil) && keyNotFound {
+		log.Trace().Err(err).Msg("Hannibal Inbox: Signing key could not be found")
+		return ResultUnknown
+	}
 
 	if err != nil {
 		log.Trace().Err(err).Msg("Hannibal Inbox: Error verifying HTTP Signature")
@@ -63,8 +97,8 @@ func (validator HTTPSig) Validate(request *http.Request, activity *streams.Docum
 	return ResultValid
 }
 
-// keyFinder looks up the public Key for the provided activity/Actor using the
-// HTTP client in the activity.
+// defaultKeyFinder looks up the public key of the activity's actor. It loads the actor with a
+// new default client, and not with the client that the activity carries.
 func defaultKeyFinder(activity *streams.Document) sigs.PublicKeyFinder {
 
 	const location = "hannibal.validator.defaultKeyFinder"
@@ -72,7 +106,7 @@ func defaultKeyFinder(activity *streams.Document) sigs.PublicKeyFinder {
 	return func(keyID string) (string, error) {
 
 		// Create a fresh client to load the Actor from the activity
-		actor, err := streams.NewDocument(activity.Actor().ID()).Load()
+		actor, err := streams.NewDocument(activity.Actor().ID(), streams.WithDefaultClient()).Load()
 
 		if err != nil {
 			return "", derp.Wrap(err, location, "Retrieving Actor from ActivityPub activity", activity.Value())

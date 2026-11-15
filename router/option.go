@@ -2,7 +2,6 @@ package router
 
 import (
 	"github.com/benpate/hannibal/sigs"
-	"github.com/benpate/hannibal/validator"
 	"github.com/benpate/re"
 )
 
@@ -29,14 +28,10 @@ func WithMaxBodySize(maxBytes int64) Option {
 
 // WithPublicKeyFinder configures the HTTP signature validator to use the
 // provided public key finder when verifying inbound requests. This replaces
-// the default HTTPSig validator (which loads the key from the inbound document)
-// while leaving the rest of the validator chain intact.
+// the key finder of every HTTPSig validator in the chain, and keeps each one's verifier
+// options. It applies after every other option, wherever it appears in the list.
 func WithPublicKeyFinder(keyFinder sigs.PublicKeyFinder) Option {
 	return func(config *ReceiveConfig) {
-		for index, item := range config.Validators {
-			if _, ok := item.(validator.HTTPSig); ok {
-				config.Validators[index] = validator.NewHTTPSig(keyFinder)
-			}
-		}
+		config.keyFinder = keyFinder
 	}
 }
