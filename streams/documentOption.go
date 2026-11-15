@@ -4,19 +4,29 @@ import (
 	"net/http"
 
 	"github.com/benpate/hannibal/metadata"
+	"github.com/benpate/remote"
 )
 
 // DocumentOption is a function that configures a Document during construction.
 type DocumentOption func(*Document)
 
-// WithClient option sets the HTTP client that can load remote documents if necessary
+// WithClient sets the Client that loads remote documents for this Document. A nil Client
+// leaves the Document able to load nothing.
 func WithClient(client Client) DocumentOption {
 	return func(doc *Document) {
 		if client == nil {
-			doc.client = NewDefaultClient()
+			doc.client = NewNilClient()
 		} else {
 			doc.client = client
 		}
+	}
+}
+
+// WithDefaultClient lets the Document load remote documents straight from their servers, with
+// no cache, using the provided options on every request
+func WithDefaultClient(options ...remote.Option) DocumentOption {
+	return func(doc *Document) {
+		doc.client = NewDefaultClient(options...)
 	}
 }
 

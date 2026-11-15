@@ -57,12 +57,12 @@ func TestDocument_WithOptions(t *testing.T) {
 	assert.Equal(t, vocab.DocumentCategoryObject, doc.Metadata.DocumentCategory)
 }
 
-// TestWithClient_NilFallsBackToDefault confirms passing a nil client installs
-// the default client rather than leaving the document without one.
-func TestWithClient_NilFallsBackToDefault(t *testing.T) {
+// TestWithClient_NilLoadsNothing confirms that a nil client leaves the document with a client
+// that is safe to call and loads nothing
+func TestWithClient_NilLoadsNothing(t *testing.T) {
 
 	doc := NewDocument(map[string]any{}, WithClient(nil))
-	assert.NotNil(t, doc.Client())
+	assert.IsType(t, NilClient{}, doc.Client())
 }
 
 // TestNewCollection confirms the constructor sets the ID, type, and default context.
