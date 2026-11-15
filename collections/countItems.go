@@ -5,10 +5,9 @@ import (
 	"github.com/benpate/hannibal/streams"
 )
 
-// CountItems returns the number of items in the given collection. If the
-// collection includes a `TotalItems` value, then this is returned. Otherwise,
-// this function will iterate through all pages in the collection to count the items.
-func CountItems(collection streams.Document) (int, error) {
+// CountItems returns a collection's `totalItems`, or counts its items page by page when it
+// names none. It accepts the options of RangePages, which bound how much is read.
+func CountItems(collection streams.Document, options ...Option) (count int, err error) {
 
 	const location = "hannibal.collections.CountItems"
 
@@ -17,9 +16,12 @@ func CountItems(collection streams.Document) (int, error) {
 		return 0, nil
 	}
 
+	// RULE: A panic is an error, and never a count. Reporting it as zero items would tell
+	// the caller that the collection is empty.
 	defer func() {
-		if err := recover(); err != nil {
-			derp.Report(derp.Internal(location, "Recovered error", err, collection.ID()))
+		if recovered := recover(); recovered != nil {
+			count = 0
+			err = derp.Internal(location, "Recovered from a panic while counting", recovered, collection.ID())
 		}
 	}()
 
@@ -36,18 +38,18 @@ func CountItems(collection streams.Document) (int, error) {
 	var result int
 
 	// Retrieve each page in the collection and count the number of items it contains.
-	for page := range RangePages(collection) {
+	for page := range RangePages(collection, options...) {
 
 		// Get the number of items in this page
-		count := page.Items().Len()
+		pageCount := page.Items().Len()
 
 		// If this page is empty, then we don't need to load any more pages
-		if count == 0 {
+		if pageCount == 0 {
 			break
 		}
 
 		// Increment the total count
-		result += count
+		result += pageCount
 	}
 
 	// Return the number of items found

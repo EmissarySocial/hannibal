@@ -5,12 +5,12 @@ import (
 	"iter"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"testing"
 
 	"github.com/benpate/derp"
 	"github.com/benpate/hannibal/vocab"
 	"github.com/benpate/rosetta/mapof"
-	"github.com/labstack/echo/v4"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -25,7 +25,7 @@ func TestServe_Empty(t *testing.T) {
 
 	ctx, recorder := newContext("https://example.com/outbox")
 
-	err := Serve(ctx, "https://example.com/outbox", counter(0), iterator(nil))
+	err := Serve(recorder, ctx, "https://example.com/outbox", counter(0), iterator(nil))
 	require.NoError(t, err)
 	require.Equal(t, http.StatusOK, recorder.Code)
 
@@ -43,7 +43,7 @@ func TestServe_SinglePage(t *testing.T) {
 	activities := makeActivities(3, false)
 	ctx, recorder := newContext("https://example.com/outbox")
 
-	err := Serve(ctx, "https://example.com/outbox", counter(3), iterator(activities))
+	err := Serve(recorder, ctx, "https://example.com/outbox", counter(3), iterator(activities))
 	require.NoError(t, err)
 
 	body := decodeBody(t, recorder)
@@ -68,7 +68,7 @@ func TestServe_MultiPage(t *testing.T) {
 	ctx, recorder := newContext("https://example.com/outbox")
 
 	// totalItems >= maxItemsPerPage triggers paging.
-	err := Serve(ctx, "https://example.com/outbox", counter(maxItemsPerPage), iterator(nil))
+	err := Serve(recorder, ctx, "https://example.com/outbox", counter(maxItemsPerPage), iterator(nil))
 	require.NoError(t, err)
 
 	body := decodeBody(t, recorder)
@@ -80,13 +80,13 @@ func TestServe_MultiPage(t *testing.T) {
 // TestServe_CountError confirms a failure in the count function is surfaced.
 func TestServe_CountError(t *testing.T) {
 
-	ctx, _ := newContext("https://example.com/outbox")
+	ctx, recorder := newContext("https://example.com/outbox")
 
 	failingCounter := func() (int64, error) {
 		return 0, derp.Internal("test", "count failed")
 	}
 
-	err := Serve(ctx, "https://example.com/outbox", failingCounter, iterator(nil))
+	err := Serve(recorder, ctx, "https://example.com/outbox", failingCounter, iterator(nil))
 	require.Error(t, err)
 }
 
@@ -94,13 +94,13 @@ func TestServe_CountError(t *testing.T) {
 // path is surfaced.
 func TestServe_SinglePage_IteratorError(t *testing.T) {
 
-	ctx, _ := newContext("https://example.com/outbox")
+	ctx, recorder := newContext("https://example.com/outbox")
 
 	failingIterator := func(_ string) (iter.Seq[mapof.Any], error) {
 		return nil, derp.Internal("test", "iterator failed")
 	}
 
-	err := Serve(ctx, "https://example.com/outbox", counter(3), failingIterator)
+	err := Serve(recorder, ctx, "https://example.com/outbox", counter(3), failingIterator)
 	require.Error(t, err)
 }
 
@@ -110,7 +110,7 @@ func TestServe_AppliesConfig(t *testing.T) {
 
 	ctx, recorder := newContext("https://example.com/outbox")
 
-	err := Serve(ctx, "https://example.com/outbox", counter(0), iterator(nil),
+	err := Serve(recorder, ctx, "https://example.com/outbox", counter(0), iterator(nil),
 		WithAttributedTo("https://example.com/actor"),
 		WithAudience("https://example.com/followers"),
 		WithSSEEndpoint("https://example.com/sse"),
@@ -134,7 +134,7 @@ func TestServe_Page_First(t *testing.T) {
 	activities := makeActivities(3, false)
 	ctx, recorder := newContext("https://example.com/outbox?after=FIRST")
 
-	err := Serve(ctx, "https://example.com/outbox", counter(100), iterator(activities))
+	err := Serve(recorder, ctx, "https://example.com/outbox", counter(100), iterator(activities))
 	require.NoError(t, err)
 
 	body := decodeBody(t, recorder)
@@ -157,7 +157,7 @@ func TestServe_Page_Next(t *testing.T) {
 	activities := makeActivities(maxItemsPerPage, false)
 	ctx, recorder := newContext("https://example.com/outbox?after=SOMEID")
 
-	err := Serve(ctx, "https://example.com/outbox", counter(1000), iterator(activities))
+	err := Serve(recorder, ctx, "https://example.com/outbox", counter(1000), iterator(activities))
 	require.NoError(t, err)
 
 	body := decodeBody(t, recorder)
@@ -169,7 +169,64 @@ func TestServe_Page_Next(t *testing.T) {
 
 	// A full page advertises the next page, keyed on the last item's ID.
 	lastID := "https://example.com/activity/" + itoa(maxItemsPerPage-1)
-	assert.Equal(t, "https://example.com/outbox?after="+lastID, body[vocab.PropertyNext])
+	assert.Equal(t, "https://example.com/outbox?after="+url.QueryEscape(lastID), body[vocab.PropertyNext])
+}
+
+// TestServe_Page_CursorSurvivesTheRoundTrip confirms an item id that holds `&` and `#` comes
+// back whole when the next page is requested
+func TestServe_Page_CursorSurvivesTheRoundTrip(t *testing.T) {
+
+	const lastID = "https://example.com/activity?a=1&b=2#c d"
+
+	activities := makeActivities(maxItemsPerPage, false)
+	activities[maxItemsPerPage-1] = mapof.Any{vocab.PropertyID: lastID}
+
+	request, recorder := newContext("https://example.com/outbox?after=FIRST")
+	require.NoError(t, Serve(recorder, request, "https://example.com/outbox", counter(1000), iterator(activities)))
+
+	next, isString := decodeBody(t, recorder)[vocab.PropertyNext].(string)
+	require.True(t, isString)
+
+	// Ask for the page that the response named, and record the cursor the iterator is given
+	var received string
+
+	recording := func(after string) (iter.Seq[mapof.Any], error) {
+		received = after
+		return func(func(mapof.Any) bool) {}, nil
+	}
+
+	request, recorder = newContext(next)
+	require.NoError(t, Serve(recorder, request, "https://example.com/outbox", counter(1000), recording))
+	assert.Equal(t, lastID, received)
+}
+
+// TestServe_Page_ItemWithoutID confirms a full page whose last item has no id names no next
+// page, because an empty cursor would start the collection over
+func TestServe_Page_ItemWithoutID(t *testing.T) {
+
+	activities := makeActivities(maxItemsPerPage, true)
+	activities[maxItemsPerPage-1] = mapof.Any{vocab.PropertyType: vocab.ActivityTypeCreate}
+
+	request, recorder := newContext("https://example.com/outbox?after=FIRST")
+	require.NoError(t, Serve(recorder, request, "https://example.com/outbox", counter(1000), iterator(activities)))
+
+	assert.NotContains(t, decodeBody(t, recorder), vocab.PropertyNext)
+}
+
+// TestServe_EveryResponseIsActivityPub confirms the collection and its pages are all labelled
+// as ActivityPub, for another server and for a browser
+func TestServe_EveryResponseIsActivityPub(t *testing.T) {
+
+	for _, accept := range []string{vocab.ContentTypeActivityPub, "text/html", ""} {
+		for _, target := range []string{"https://example.com/outbox", "https://example.com/outbox?after=FIRST", "https://example.com/outbox?after=SOMEID"} {
+
+			request, recorder := newContextWithAccept(target, accept)
+			require.NoError(t, Serve(recorder, request, "https://example.com/outbox", counter(1000), iterator(makeActivities(3, false))))
+
+			assert.Equal(t, vocab.ContentTypeActivityPub, recorder.Header().Get("Content-Type"), target+" "+accept)
+			assert.Equal(t, http.StatusOK, recorder.Code)
+		}
+	}
 }
 
 // TestServe_Page_LimitsToPageSize confirms getItems never returns more than the
@@ -180,7 +237,7 @@ func TestServe_Page_LimitsToPageSize(t *testing.T) {
 	activities := makeActivities(maxItemsPerPage*2, false)
 	ctx, recorder := newContext("https://example.com/outbox?after=FIRST")
 
-	err := Serve(ctx, "https://example.com/outbox", counter(1000), iterator(activities))
+	err := Serve(recorder, ctx, "https://example.com/outbox", counter(1000), iterator(activities))
 	require.NoError(t, err)
 
 	body := decodeBody(t, recorder)
@@ -193,13 +250,13 @@ func TestServe_Page_LimitsToPageSize(t *testing.T) {
 // surfaced.
 func TestServe_Page_IteratorError(t *testing.T) {
 
-	ctx, _ := newContext("https://example.com/outbox?after=FIRST")
+	ctx, recorder := newContext("https://example.com/outbox?after=FIRST")
 
 	failingIterator := func(_ string) (iter.Seq[mapof.Any], error) {
 		return nil, derp.Internal("test", "iterator failed")
 	}
 
-	err := Serve(ctx, "https://example.com/outbox", counter(100), failingIterator)
+	err := Serve(recorder, ctx, "https://example.com/outbox", counter(100), failingIterator)
 	require.Error(t, err)
 }
 
@@ -237,7 +294,7 @@ func TestServe_ContentTypeNegotiation(t *testing.T) {
 	t.Run("ActivityPub Accept -> compact", func(t *testing.T) {
 		ctx, recorder := newContextWithAccept("https://example.com/outbox", vocab.ContentTypeActivityPub)
 
-		err := Serve(ctx, "https://example.com/outbox", counter(2), iterator(activities))
+		err := Serve(recorder, ctx, "https://example.com/outbox", counter(2), iterator(activities))
 		require.NoError(t, err)
 
 		body := decodeBody(t, recorder)
@@ -249,7 +306,7 @@ func TestServe_ContentTypeNegotiation(t *testing.T) {
 	t.Run("browser Accept -> pretty", func(t *testing.T) {
 		ctx, recorder := newContextWithAccept("https://example.com/outbox", "text/html")
 
-		err := Serve(ctx, "https://example.com/outbox", counter(2), iterator(activities))
+		err := Serve(recorder, ctx, "https://example.com/outbox", counter(2), iterator(activities))
 		require.NoError(t, err)
 
 		body := decodeBody(t, recorder)
@@ -266,7 +323,7 @@ func TestServe_FullObjectsRenderWhole(t *testing.T) {
 	activities := makeActivities(2, true) // each has id + type
 	ctx, recorder := newContext("https://example.com/outbox")
 
-	err := Serve(ctx, "https://example.com/outbox", counter(2), iterator(activities))
+	err := Serve(recorder, ctx, "https://example.com/outbox", counter(2), iterator(activities))
 	require.NoError(t, err)
 
 	body := decodeBody(t, recorder)
@@ -284,13 +341,10 @@ func TestServe_FullObjectsRenderWhole(t *testing.T) {
  * Test Helpers
  ******************************************/
 
-// newContext builds an Echo context plus its response recorder for a GET request
+// newContext builds a GET request plus its response recorder
 // to the given target (which may include a query string).
-func newContext(target string) (echo.Context, *httptest.ResponseRecorder) {
-	e := echo.New()
-	request := httptest.NewRequest(http.MethodGet, target, nil)
-	recorder := httptest.NewRecorder()
-	return e.NewContext(request, recorder), recorder
+func newContext(target string) (*http.Request, *httptest.ResponseRecorder) {
+	return httptest.NewRequest(http.MethodGet, target, nil), httptest.NewRecorder()
 }
 
 // counter returns a CounterFunc that always reports the given total.
@@ -349,10 +403,8 @@ func itoa(i int) string {
 
 // newContextWithAccept is like newContext but sets the Accept header, used to
 // exercise content-type negotiation in serveJSON.
-func newContextWithAccept(target string, accept string) (echo.Context, *httptest.ResponseRecorder) {
-	e := echo.New()
+func newContextWithAccept(target string, accept string) (*http.Request, *httptest.ResponseRecorder) {
 	request := httptest.NewRequest(http.MethodGet, target, nil)
 	request.Header.Set("Accept", accept)
-	recorder := httptest.NewRecorder()
-	return e.NewContext(request, recorder), recorder
+	return request, httptest.NewRecorder()
 }

@@ -5,7 +5,6 @@ import (
 	"testing"
 
 	"github.com/benpate/hannibal/vocab"
-	"github.com/labstack/echo/v4"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -20,7 +19,7 @@ func TestServeSummary_PublishesCountNotMembers(t *testing.T) {
 
 	ctx, recorder := newContext("https://example.com/followers")
 
-	err := ServeSummary(ctx, "https://example.com/followers", 42)
+	err := ServeSummary(recorder, ctx, "https://example.com/followers", 42)
 	require.NoError(t, err)
 	require.Equal(t, http.StatusOK, recorder.Code)
 
@@ -49,7 +48,7 @@ func TestServeSummary_ZeroIsPublished(t *testing.T) {
 	// single predictable spelling.
 	ctx, recorder := newContextWithAccept("https://example.com/followers", vocab.ContentTypeActivityPub)
 
-	err := ServeSummary(ctx, "https://example.com/followers", 0)
+	err := ServeSummary(recorder, ctx, "https://example.com/followers", 0)
 	require.NoError(t, err)
 
 	body := decodeBody(t, recorder)
@@ -61,15 +60,13 @@ func TestServeSummary_ZeroIsPublished(t *testing.T) {
 	assert.Contains(t, recorder.Body.String(), `"totalItems":0`)
 }
 
-// TestServeSummary_ContentType confirms the response is labelled as ActivityPub. Echo's JSON
-// helpers only set a content type when one is not already present, so the explicit header set by
-// ServeSummary must win over application/json.
+// TestServeSummary_ContentType confirms the response is labelled as ActivityPub.
 func TestServeSummary_ContentType(t *testing.T) {
 
 	ctx, recorder := newContext("https://example.com/followers")
 
-	require.NoError(t, ServeSummary(ctx, "https://example.com/followers", 7))
-	assert.Equal(t, vocab.ContentTypeActivityPub, recorder.Header().Get(echo.HeaderContentType))
+	require.NoError(t, ServeSummary(recorder, ctx, "https://example.com/followers", 7))
+	assert.Equal(t, vocab.ContentTypeActivityPub, recorder.Header().Get("Content-Type"))
 }
 
 // TestServeSummary_AppliesConfig confirms the functional options are honoured, so a summary
@@ -78,7 +75,7 @@ func TestServeSummary_AppliesConfig(t *testing.T) {
 
 	ctx, recorder := newContext("https://example.com/followers")
 
-	err := ServeSummary(ctx, "https://example.com/followers", 3,
+	err := ServeSummary(recorder, ctx, "https://example.com/followers", 3,
 		WithAttributedTo("https://example.com/@sarah"),
 		WithAudience("https://example.com/followers"),
 	)
@@ -97,7 +94,7 @@ func TestServeSummary_IgnoresPagingQuery(t *testing.T) {
 
 	ctx, recorder := newContext("https://example.com/followers?after=FIRST")
 
-	require.NoError(t, ServeSummary(ctx, "https://example.com/followers", 99))
+	require.NoError(t, ServeSummary(recorder, ctx, "https://example.com/followers", 99))
 
 	body := decodeBody(t, recorder)
 	assert.Equal(t, vocab.CoreTypeOrderedCollection, body[vocab.PropertyType])
@@ -112,14 +109,14 @@ func TestServeSummary_ContentTypeNegotiation(t *testing.T) {
 	t.Run("ActivityPub Accept -> compact", func(t *testing.T) {
 		ctx, recorder := newContextWithAccept("https://example.com/followers", vocab.ContentTypeActivityPub)
 
-		require.NoError(t, ServeSummary(ctx, "https://example.com/followers", 5))
+		require.NoError(t, ServeSummary(recorder, ctx, "https://example.com/followers", 5))
 		assert.NotContains(t, recorder.Body.String(), "\n    ")
 	})
 
 	t.Run("browser Accept -> pretty", func(t *testing.T) {
 		ctx, recorder := newContextWithAccept("https://example.com/followers", "text/html")
 
-		require.NoError(t, ServeSummary(ctx, "https://example.com/followers", 5))
+		require.NoError(t, ServeSummary(recorder, ctx, "https://example.com/followers", 5))
 		assert.Contains(t, recorder.Body.String(), "\n    ")
 	})
 }
@@ -135,7 +132,7 @@ func TestServeEmpty_PublishesZero(t *testing.T) {
 
 	ctx, recorder := newContext("https://example.com/followers")
 
-	err := ServeEmpty(ctx, "https://example.com/followers")
+	err := ServeEmpty(recorder, ctx, "https://example.com/followers")
 	require.NoError(t, err)
 	require.Equal(t, http.StatusOK, recorder.Code)
 
@@ -156,6 +153,6 @@ func TestServeEmpty_ContentType(t *testing.T) {
 
 	ctx, recorder := newContext("https://example.com/followers")
 
-	require.NoError(t, ServeEmpty(ctx, "https://example.com/followers"))
-	assert.Equal(t, vocab.ContentTypeActivityPub, recorder.Header().Get(echo.HeaderContentType))
+	require.NoError(t, ServeEmpty(recorder, ctx, "https://example.com/followers"))
+	assert.Equal(t, vocab.ContentTypeActivityPub, recorder.Header().Get("Content-Type"))
 }

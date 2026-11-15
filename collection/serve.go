@@ -3,60 +3,54 @@
 package collection
 
 import (
+	"encoding/json"
 	"net/http"
+	"net/url"
 
 	"github.com/benpate/derp"
 	"github.com/benpate/hannibal"
 	"github.com/benpate/hannibal/vocab"
 	"github.com/benpate/rosetta/mapof"
 	"github.com/benpate/rosetta/ranges"
-	"github.com/labstack/echo/v4"
 )
 
 // maxItemsPerPage is the maximum number of items that will be returned in a single page of an OrderedCollection
 const maxItemsPerPage = 60
 
-// Serve generates a data for the collection that can be retured via HTTP,
-// returning ActivityStreams OrderedCollection or OrderedCollectionPage of outbound activities.
-// The `storage` parameter is assumed to already contain any necessary filtering information
-// such as Actor permissions and "after" cursors.
-func Serve(ctx echo.Context, collectionID string, countFunc CounterFunc, iteratorFunc IteratorFunc, options ...Option) error {
+// firstPage is the value of the `after` parameter that asks for the first page of a collection
+const firstPage = "FIRST"
+
+// Serve writes an ActivityStreams OrderedCollection, or the OrderedCollectionPage that the
+// request's `after` parameter names. The iterator must already apply the caller's permissions.
+func Serve(writer http.ResponseWriter, request *http.Request, collectionID string, countFunc CounterFunc, iteratorFunc IteratorFunc, options ...Option) error {
 
 	config := NewConfig(options...)
 
 	// If we have an "after" parameter, then return the OrderedCollectionPage
 	// corresponding to all activities after the provided ID
-	if after := ctx.QueryParam("after"); after != "" {
-		return serveOrderedCollectionPage(ctx, collectionID, iteratorFunc, after)
+	if after := request.URL.Query().Get("after"); after != "" {
+		return serveOrderedCollectionPage(writer, request, collectionID, iteratorFunc, after)
 	}
 
 	// Otherwise, return the OrderedCollection container
-	return serveOrderedCollection(ctx, collectionID, countFunc, iteratorFunc, config)
+	return serveOrderedCollection(writer, request, collectionID, countFunc, iteratorFunc, config)
 }
 
 // ServeEmpty generates an empty OrderedCollection and returns it via HTTP.
-func ServeEmpty(ctx echo.Context, collectionID string) error {
+func ServeEmpty(writer http.ResponseWriter, request *http.Request, collectionID string) error {
 
 	// An empty collection is just a summary whose count is zero.  This deliberately does NOT
 	// marshal a streams.OrderedCollection: that struct tags TotalItems as `omitempty`, so the
 	// zero this function exists to report is exactly the value that would be dropped.
-	return ServeSummary(ctx, collectionID, 0)
+	return ServeSummary(writer, request, collectionID, 0)
 }
 
 // ServeSummary generates an OrderedCollection that publishes its SIZE but not its MEMBERS, and
 // returns it via HTTP: `id`, `type`, and `totalItems`, with no `first` link and no `orderedItems`.
-func ServeSummary(ctx echo.Context, collectionID string, totalItems int64, options ...Option) error {
+func ServeSummary(writer http.ResponseWriter, request *http.Request, collectionID string, totalItems int64, options ...Option) error {
 
-	// Use this for a collection whose contents are deliberately not disclosed -- most commonly an
-	// actor's `followers` or `following`, which ActivityPub §5.3/§5.4 permit a server to filter "on
-	// privileges of an authenticated user or as appropriate when no authentication is given."
-	//
-	// The absence of `first` is the meaningful signal, not an oversight: Mastodon reads a collection
-	// with a count but no first page as one the actor has chosen to hide, and says so, rather than
-	// reporting that the actor has no followers. Publishing the count is what separates a deliberate
-	// privacy choice from a broken endpoint -- a consumer that sees no `totalItems` at all cannot tell
-	// "zero" from "unknown", and will leave a previously-cached count in place forever.
-
+	// The absence of `first` is the signal: Mastodon reads a collection with a count and no
+	// first page as one the actor has chosen to hide. The README explains when to use this.
 	result := mapof.Any{
 		vocab.AtContext:          vocab.ContextTypeActivityStreams,
 		vocab.PropertyType:       vocab.CoreTypeOrderedCollection,
@@ -66,11 +60,12 @@ func ServeSummary(ctx echo.Context, collectionID string, totalItems int64, optio
 
 	NewConfig(options...).Apply(&result)
 
-	ctx.Response().Header().Set(echo.HeaderContentType, vocab.ContentTypeActivityPub)
-	return serveJSON(ctx, http.StatusOK, result)
+	return serveJSON(writer, request, result)
 }
 
-func serveOrderedCollection(ctx echo.Context, collectionID string, countFunc CounterFunc, iteratorFunc IteratorFunc, config Config) error {
+// serveOrderedCollection serves the collection itself: its count, and either its items or a
+// link to its first page
+func serveOrderedCollection(writer http.ResponseWriter, request *http.Request, collectionID string, countFunc CounterFunc, iteratorFunc IteratorFunc, config Config) error {
 
 	const location = "collection.serveOrderedCollection"
 
@@ -92,7 +87,7 @@ func serveOrderedCollection(ctx echo.Context, collectionID string, countFunc Cou
 
 	// If there are no items, then return an empty collection
 	if totalItems == 0 {
-		return serveJSON(ctx, http.StatusOK, result)
+		return serveJSON(writer, request, result)
 	}
 
 	// If we only have one page worth of items, then return it directly in the "orderedItems" property
@@ -104,23 +99,23 @@ func serveOrderedCollection(ctx echo.Context, collectionID string, countFunc Cou
 		}
 
 		result[vocab.PropertyOrderedItems] = orderedItems
-		return serveJSON(ctx, http.StatusOK, result)
+		return serveJSON(writer, request, result)
 
 	}
 
 	// Otherwise, break the collection into pages. Return the FIRST page URL
-	result[vocab.PropertyFirst] = collectionID + "?after=FIRST"
-	return serveJSON(ctx, http.StatusOK, result)
+	result[vocab.PropertyFirst] = pageURL(collectionID, firstPage)
+	return serveJSON(writer, request, result)
 }
 
 // serveOrderedCollectionPage serves a single page of activities from the OrderedCollection
 // starting after the provided activity ID.
-func serveOrderedCollectionPage(ctx echo.Context, collectionID string, iteratorFunc IteratorFunc, after string) error {
+func serveOrderedCollectionPage(writer http.ResponseWriter, request *http.Request, collectionID string, iteratorFunc IteratorFunc, after string) error {
 
 	const location = "collection.serveOrderedCollectionPage"
 
 	// Remove the magic "FIRST" value (if present) to send to the getItems() function
-	afterParam := iif(after == "FIRST", "", after)
+	afterParam := iif(after == firstPage, "", after)
 
 	// Get the activities in the collection
 	orderedItems, lastID, err := getItems(iteratorFunc, afterParam)
@@ -133,18 +128,26 @@ func serveOrderedCollectionPage(ctx echo.Context, collectionID string, iteratorF
 	result := mapof.Any{
 		vocab.AtContext:            vocab.ContextTypeActivityStreams,
 		vocab.PropertyType:         vocab.CoreTypeOrderedCollectionPage,
-		vocab.PropertyID:           collectionID + "?after=" + after,
+		vocab.PropertyID:           pageURL(collectionID, after),
 		vocab.PropertyPartOf:       collectionID,
 		vocab.PropertyOrderedItems: orderedItems,
 	}
 
-	// Set the "next" after URL (if applicable)
-	if len(orderedItems) >= maxItemsPerPage {
-		result[vocab.PropertyNext] = collectionID + "?after=" + lastID
+	// Set the "next" after URL (if applicable).
+	// RULE: A page whose last item has no id cannot name the page after it. An empty cursor
+	// would be read as a request for the collection itself, and paging would start over.
+	if (len(orderedItems) >= maxItemsPerPage) && (lastID != "") {
+		result[vocab.PropertyNext] = pageURL(collectionID, lastID)
 	}
 
 	// Done!
-	return ctx.JSON(http.StatusOK, result)
+	return serveJSON(writer, request, result)
+}
+
+// pageURL returns the address of the page that follows the given item. The cursor is an
+// item's id, which is a URL of its own, so it is escaped.
+func pageURL(collectionID string, after string) string {
+	return collectionID + "?after=" + url.QueryEscape(after)
 }
 
 // getItems retrieves all items from the collection after the provided "lastID".
@@ -184,11 +187,31 @@ func activityValue(activity mapof.Any) any {
 	return activity
 }
 
-func serveJSON(ctx echo.Context, statusCode int, data any) error {
+// serveJSON writes an ActivityPub document: compact for another server, and indented for a browser
+func serveJSON(writer http.ResponseWriter, request *http.Request, data any) error {
 
-	if hannibal.IsActivityPubRequest(ctx.Request()) {
-		return ctx.JSON(statusCode, data)
+	const location = "collection.serveJSON"
+
+	var body []byte
+	var err error
+
+	if hannibal.IsActivityPubRequest(request) {
+		body, err = json.Marshal(data)
+	} else {
+		body, err = json.MarshalIndent(data, "", "    ")
 	}
 
-	return ctx.JSONPretty(statusCode, data, "    ")
+	if err != nil {
+		return derp.Wrap(err, location, "Serializing collection")
+	}
+
+	// RULE: Every response is labelled as ActivityPub, the collection and its pages alike
+	writer.Header().Set("Content-Type", vocab.ContentTypeActivityPub)
+	writer.WriteHeader(http.StatusOK)
+
+	if _, err := writer.Write(body); err != nil {
+		return derp.Wrap(err, location, "Writing collection")
+	}
+
+	return nil
 }

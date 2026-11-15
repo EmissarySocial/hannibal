@@ -21,7 +21,8 @@ func RangeDocumentsBefore(iterator iter.Seq[streams.Document], limit int64) iter
 		// Scan through the range of documents
 		for document := range iterator {
 
-			// Filter out documents that are equal or after the "before" date
+			// Filter out documents published after the "before" date. One published in that
+			// same second is kept.
 			if hasLimit && document.Published().After(limitTime) {
 				continue
 			}

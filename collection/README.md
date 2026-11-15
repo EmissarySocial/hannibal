@@ -6,7 +6,7 @@ over HTTP. You supply two functions — one that counts the items and one that i
 `Serve` handles paging, content negotiation, and JSON-LD rendering.
 
 ```go
-func handleOutbox(ctx echo.Context) error {
+func handleOutbox(writer http.ResponseWriter, request *http.Request) error {
 
 	// Returns the total number of items in the collection
 	countFunc := func() (int64, error) {
@@ -18,7 +18,7 @@ func handleOutbox(ctx echo.Context) error {
 		return myService.ActivitiesAfter(actorID, startIndex)
 	}
 
-	return collection.Serve(ctx, collectionID, countFunc, iteratorFunc,
+	return collection.Serve(writer, request, collectionID, countFunc, iteratorFunc,
 		collection.WithAttributedTo(actorID),
 	)
 }
@@ -30,6 +30,8 @@ func handleOutbox(ctx echo.Context) error {
 
 - **no `after`** — returns the top-level `OrderedCollection` (with `first`/`last` page links and the total count).
 - **`after=<id>`** — returns the `OrderedCollectionPage` of items following that cursor.
+
+Every response is served as `application/activity+json`. `Serve` takes a standard `http.ResponseWriter` and `*http.Request`, so it works under any router; with echo, pass `ctx.Response()` and `ctx.Request()`. The cursor in `first` and `next` is an item's id, query-escaped. A full page whose last item has no id names no `next` page.
 
 The `countFunc` and `iteratorFunc` are expected to already encode any filtering (actor permissions,
 visibility, cursors); `Serve` does not add its own access control.
