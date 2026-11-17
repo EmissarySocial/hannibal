@@ -1,4 +1,4 @@
-package delivery
+package hannibal
 
 import (
 	"github.com/benpate/derp"
@@ -10,7 +10,7 @@ import (
 // level of nesting. The original is not changed, and the copy keeps the type of every value.
 func StripBlindRecipients(document map[string]any) (map[string]any, error) {
 
-	const location = "hannibal.delivery.StripBlindRecipients"
+	const location = "hannibal.StripBlindRecipients"
 
 	// RULE: The strip works on a copy that shares nothing with the original, because the
 	// fan-out and the stored document still need their blind recipients

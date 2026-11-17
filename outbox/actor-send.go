@@ -5,6 +5,7 @@ import (
 	"net/url"
 
 	"github.com/benpate/derp"
+	"github.com/benpate/hannibal"
 	"github.com/benpate/hannibal/delivery"
 	"github.com/benpate/hannibal/streams"
 	"github.com/benpate/hannibal/vocab"
@@ -24,7 +25,7 @@ func (actor *Actor) Send(message mapof.Any, recipients ...iter.Seq[string]) {
 	const location = "hannibal.outbox.actor.Send"
 
 	// RULE: No recipient may see who was blind-copied, so one stripped copy is sent to everyone
-	stripped, err := delivery.StripBlindRecipients(message)
+	stripped, err := hannibal.StripBlindRecipients(message)
 
 	if err != nil {
 		derp.Report(derp.Wrap(err, location, "Unable to remove blind recipients"))
@@ -71,7 +72,7 @@ func (actor *Actor) Send(message mapof.Any, recipients ...iter.Seq[string]) {
 func (actor *Actor) SendOne(recipientID string, message mapof.Any) error {
 
 	// RULE: No recipient may see who was blind-copied, at any level of the message
-	stripped, err := delivery.StripBlindRecipients(message)
+	stripped, err := hannibal.StripBlindRecipients(message)
 
 	if err != nil {
 		return derp.Wrap(err, "hannibal.outbox.actor.SendOne", "Unable to remove blind recipients", recipientID)

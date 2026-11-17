@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/benpate/derp"
+	"github.com/benpate/hannibal"
 	"github.com/benpate/hannibal/streams"
 	"github.com/benpate/rosetta/mapof"
 	"github.com/benpate/turbine/queue"
@@ -165,7 +166,7 @@ func (pipeline Pipeline) message(actorID string, activity streams.Document) (out
 
 	// RULE: Strip first, from a copy. A proof made over the blind recipients would fail once
 	// they are removed, and the fan-out still reads them from the original.
-	stripped, err := StripBlindRecipients(activity.Map())
+	stripped, err := hannibal.StripBlindRecipients(activity.Map())
 
 	if err != nil {
 		return outboundMessage{}, derp.Wrap(err, location, "Removing blind recipients")

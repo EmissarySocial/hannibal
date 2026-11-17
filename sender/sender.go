@@ -9,7 +9,7 @@ import (
 	"time"
 
 	"github.com/benpate/derp"
-	"github.com/benpate/hannibal/delivery"
+	"github.com/benpate/hannibal"
 	"github.com/benpate/hannibal/vocab"
 	"github.com/benpate/remote"
 	"github.com/benpate/remote/options"
@@ -117,7 +117,7 @@ func (sender *Sender) SendToAllRecipients(activity mapof.Any) queue.Result {
 
 	// RULE: No recipient may see who was blind-copied. An embedded object can name blind
 	// recipients of its own, so `bto` and `bcc` are removed at every level, from a copy.
-	stripped, err := delivery.StripBlindRecipients(activity)
+	stripped, err := hannibal.StripBlindRecipients(activity)
 
 	if err != nil {
 		return queue.Failure(derp.Wrap(err, location, "Unable to remove blind recipients", activityName(activity)))
