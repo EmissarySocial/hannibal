@@ -51,7 +51,7 @@ func TestDefaultKeyFinder_UsesANetworkClient(t *testing.T) {
 
 	activity := actorDocument("https://offline.example.com/users/alice")
 
-	_, err := defaultKeyFinder(&activity)("https://offline.example.com/users/alice#main-key")
+	_, err := defaultKeyFinder(&activity, streams.NewDefaultClient())("https://offline.example.com/users/alice#main-key")
 	require.Error(t, err)
 
 	// The failure comes from the request, and not from a Document that had no client
@@ -64,6 +64,82 @@ func TestDefaultKeyFinder_UsesANetworkClient(t *testing.T) {
 	require.Contains(t, locations, "hannibal.streams.Client.Load")
 	require.NotContains(t, locations, "hannibal.streams.NilClient.Load")
 }
+
+// TestDefaultKeyFinder_BareActorURL confirms that the default finder loads the actor of an
+// activity that names it as a bare URL and carries no client, which is how a request arrives
+// when the router is given none
+func TestDefaultKeyFinder_BareActorURL(t *testing.T) {
+
+	actorID := "https://example.com/users/alice"
+	keyID := actorID + "#main-key"
+
+	activity := bareActorActivity(t, actorID)
+
+	client := &actorClient{actor: map[string]any{
+		"id":   actorID,
+		"type": "Person",
+		"publicKey": map[string]any{
+			"id":           keyID,
+			"owner":        actorID,
+			"publicKeyPem": "PEM-ENCODED-KEY",
+		},
+	}}
+
+	key, err := defaultKeyFinder(&activity, client)(keyID)
+
+	require.NoError(t, err)
+	require.Equal(t, "PEM-ENCODED-KEY", key)
+	require.Equal(t, []string{actorID}, client.loaded, "the finder must ask for the actor by its URL")
+}
+
+// TestHTTPSig_BareActorWithoutClient confirms that a correctly signed request is Valid when
+// its activity names the actor as a bare URL and carries no client
+func TestHTTPSig_BareActorWithoutClient(t *testing.T) {
+
+	actorID := "https://example.com/users/alice"
+	request, keyFinder := signedRequestForActor(t, actorID+"#main-key")
+
+	v := NewHTTPSig(keyFinder)
+	activity := bareActorActivity(t, actorID)
+
+	require.Equal(t, ResultValid, v.Validate(request, &activity))
+}
+
+// bareActorActivity returns an activity as router.ReceiveRequest builds one with no client:
+// parsed from JSON, with its actor written as a bare URL
+func bareActorActivity(t *testing.T, actorID string) streams.Document {
+	t.Helper()
+
+	activity, err := streams.ParseDocument([]byte(`{"type":"Create","actor":"` + actorID + `"}`))
+	require.NoError(t, err)
+
+	return activity
+}
+
+// actorClient is a streams.Client that answers every load with one actor, and records each URL
+type actorClient struct {
+	actor  map[string]any
+	loaded []string
+}
+
+// Load returns the actor, whatever URL is asked for
+func (client *actorClient) Load(url string, _ ...any) (streams.Document, error) {
+	client.loaded = append(client.loaded, url)
+	return streams.NewDocument(client.actor), nil
+}
+
+// Save implements the streams.Client interface, and stores nothing
+func (client *actorClient) Save(streams.Document) error {
+	return nil
+}
+
+// Delete implements the streams.Client interface, and removes nothing
+func (client *actorClient) Delete(string) error {
+	return nil
+}
+
+// SetRootClient implements the streams.Client interface, and keeps no root
+func (client *actorClient) SetRootClient(streams.Client) {}
 
 // TestHTTPSig_KeyNotFound confirms that a signature whose key cannot be found is left to the
 // next validator, while a key that was found and does not match is refused

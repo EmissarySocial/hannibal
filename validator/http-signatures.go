@@ -53,9 +53,10 @@ func (validator HTTPSig) Validate(request *http.Request, activity *streams.Docum
 	// Try to use the KeyFinder configured in this Validator.
 	keyFinder := validator.keyFinder
 
-	// If none is provided, then use the default KeyFinder, which looks up the Actor's public key from the document.
+	// If none is provided, then use the default KeyFinder, which asks the Actor's own server for
+	// the key. It gets a client of its own, because the activity may carry none.
 	if keyFinder == nil {
-		keyFinder = defaultKeyFinder(activity)
+		keyFinder = defaultKeyFinder(activity, streams.NewDefaultClient())
 	}
 
 	// Note whether the key could be found, which is not the same as a signature that is wrong
@@ -87,9 +88,10 @@ func (validator HTTPSig) Validate(request *http.Request, activity *streams.Docum
 		return ResultInvalid
 	}
 
-	// Actor who owns the signature must match the Actor in the Activity.
-	if signature.ActorID() != activity.Actor().ID() {
-		log.Trace().Str("signatureActor", signature.ActorID()).Str("activityActor", activity.Actor().ID()).Msg("Hannibal Inbox: HTTP Signature Actor does not match Activity Actor")
+	// Actor who owns the signature must match the Actor in the Activity. The actor is read as
+	// an ID, which loads nothing: `Actor()` is empty for a bare URL when the activity has no client.
+	if activityActorID := activity.ActorID(); signature.ActorID() != activityActorID {
+		log.Trace().Str("signatureActor", signature.ActorID()).Str("activityActor", activityActorID).Msg("Hannibal Inbox: HTTP Signature Actor does not match Activity Actor")
 		return ResultInvalid
 	}
 
@@ -97,16 +99,17 @@ func (validator HTTPSig) Validate(request *http.Request, activity *streams.Docum
 	return ResultValid
 }
 
-// defaultKeyFinder looks up the public key of the activity's actor. It loads the actor with a
-// new default client, and not with the client that the activity carries.
-func defaultKeyFinder(activity *streams.Document) sigs.PublicKeyFinder {
+// defaultKeyFinder looks up the public key of the activity's actor. It loads the actor with
+// the client it is given, and not with the client that the activity carries.
+func defaultKeyFinder(activity *streams.Document, client streams.Client) sigs.PublicKeyFinder {
 
 	const location = "hannibal.validator.defaultKeyFinder"
 
 	return func(keyID string) (string, error) {
 
-		// Create a fresh client to load the Actor from the activity
-		actor, err := streams.NewDocument(activity.Actor().ID(), streams.WithDefaultClient()).Load()
+		// RULE: The actor is read as an ID, which loads nothing. `Actor()` is empty for a bare
+		// URL when the activity has no client, and then no key could ever be found.
+		actor, err := client.Load(activity.ActorID())
 
 		if err != nil {
 			return "", derp.Wrap(err, location, "Retrieving Actor from ActivityPub activity", activity.Value())
